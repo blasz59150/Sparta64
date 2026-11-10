@@ -1,1 +1,131 @@
-
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#17191d">
+  <title>SPARTA 64 — Prototyp szachownicy</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <style>
+    :root{--bg:#f4f1e9;--card:#fffdf8;--ink:#25282d;--muted:#70757d;--red:#a92e32;--gold:#c5a45b;--light:#eee7d8;--dark:#aeb7ad;--line:#e6e0d5}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+    header{background:#191b20;color:white;padding:18px 22px;border-bottom:4px solid var(--red)}
+    .brand{display:flex;align-items:center;gap:13px;max-width:1050px;margin:auto}.crest{width:44px;height:44px;border:2px solid var(--gold);border-radius:50%;display:grid;place-items:center;color:var(--gold);font-size:25px}
+    h1{font-size:21px;letter-spacing:.08em;margin:0}.sub{color:#d9c58f;font-size:12px;letter-spacing:.12em}
+    main{max-width:1050px;margin:26px auto;padding:0 16px;display:grid;grid-template-columns:minmax(280px,620px) minmax(230px,1fr);gap:22px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
+    .board{display:grid;grid-template-columns:repeat(8,1fr);width:100%;aspect-ratio:1;border:5px solid #ded5c4;border-radius:8px;overflow:hidden}
+    .sq{border:0;padding:0;display:grid;place-items:center;position:relative;cursor:pointer;aspect-ratio:1;font-family:"DejaVu Sans",serif;font-size:clamp(25px,5.5vw,52px);line-height:1}
+    .sq.light{background:#f0e8d8}.sq.dark{background:#aeb8aa}.sq.selected{box-shadow:inset 0 0 0 4px #d6a83e}.sq.target:after{content:"";position:absolute;width:23%;height:23%;border-radius:50%;background:#b8872c99}
+    .sq.last{background:#d9c77d}.sq:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
+    .coords{position:absolute;left:4px;top:2px;font:10px system-ui;color:#5559}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    button.action{border:0;border-radius:9px;padding:10px 14px;background:var(--red);color:white;font-weight:650;cursor:pointer}
+    button.secondary{background:#eee9df;color:#34363a}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    h2{font-size:18px;margin:0 0 12px}h3{font-size:14px;margin:18px 0 6px;color:var(--muted)}
+    #status{font-weight:650;padding:12px;border-radius:10px;background:#f3eee3}
+    .note{color:var(--muted);font-size:13px}.move-list{height:230px;overflow:auto;background:#f8f5ee;border-radius:9px;padding:10px;font:13px ui-monospace,monospace;white-space:pre-wrap}
+    .pill{display:inline-block;background:#f5e9c9;color:#6c511b;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700}
+    footer{max-width:1050px;margin:0 auto 30px;padding:0 16px;color:var(--muted);font-size:12px}
+    @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
+  </style>
+</head>
+<body>
+<header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
+<main>
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.1</span></div>
+    <div id="board" class="board" aria-label="Szachownica"></div>
+    <div class="toolbar">
+      <button class="action" id="reset">Nowa partia</button>
+      <button class="action secondary" id="undo">Cofnij ruch</button>
+      <button class="action secondary" id="flip">Obróć planszę</button>
+    </div>
+  </section>
+  <aside class="panel">
+    <h2>Przebieg partii</h2>
+    <div id="status">Ładowanie szachownicy…</div>
+    <h3>Ruchy</h3><div id="moves" class="move-list">Partia jeszcze się nie rozpoczęła.</div>
+    <h3>Jak testować?</h3>
+    <p class="note">Dotknij figury, a następnie pola docelowego. Zielone kropki pokazują legalne ruchy. Prototyp obsługuje reguły gry dzięki bibliotece chess.js.</p>
+    <p class="note"><strong>Na tym etapie:</strong> bez kont, zapisu na serwerze i Stockfish. Najpierw sprawdzamy poprawność interakcji i reguł szachowych.</p>
+  </aside>
+</main>
+<footer>SPARTA 64 · Prototyp techniczny — nie jest jeszcze wersją produkcyjną.</footer>
+<script>
+(() => {
+  if (typeof Chess === "undefined") {
+    document.getElementById("status").textContent = "Nie udało się pobrać biblioteki szachowej. Sprawdź połączenie z internetem i odśwież stronę.";
+    return;
+  }
+  const game = new Chess();
+  const board = document.getElementById("board");
+  const status = document.getElementById("status");
+  const moves = document.getElementById("moves");
+  let selected = null, targets = [], flipped = false, lastMove = null;
+  const symbols = {
+    wp:"♙",wn:"♘",wb:"♗",wr:"♖",wq:"♕",wk:"♔",
+    bp:"♟",bn:"♞",bb:"♝",br:"♜",bq:"♛",bk:"♚"
+  };
+  const files = ["a","b","c","d","e","f","g","h"];
+  function orderedSquares(){
+    const out=[];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+      const file=flipped?7-c:c, rank=flipped?r+1:8-r;
+      out.push(files[file]+rank);
+    }
+    return out;
+  }
+  function render(){
+    board.innerHTML="";
+    orderedSquares().forEach((sq,i)=>{
+      const file=files.indexOf(sq[0]), rank=Number(sq[1]);
+      const el=document.createElement("button");
+      el.className="sq "+(((file+rank)%2===0)?"light":"dark");
+      if(sq===selected) el.classList.add("selected");
+      if(targets.includes(sq)) el.classList.add("target");
+      if(lastMove && (sq===lastMove.from||sq===lastMove.to)) el.classList.add("last");
+      el.setAttribute("aria-label",sq);
+      const piece=game.get(sq);
+      if(piece) el.textContent=symbols[piece.color+piece.type];
+      if(i%8===0){const c=document.createElement("span");c.className="coords";c.textContent=sq[1];el.append(c)}
+      if(i>=56){const c=document.createElement("span");c.className="coords";c.style.left="auto";c.style.right="4px";c.style.top="auto";c.style.bottom="2px";c.textContent=sq[0];el.append(c)}
+      el.addEventListener("click",()=>onSquare(sq));
+      board.append(el);
+    });
+    updateInfo();
+  }
+  function onSquare(sq){
+    const piece=game.get(sq);
+    if(selected && targets.includes(sq)){
+      const move=game.move({from:selected,to:sq,promotion:"q"});
+      if(move){lastMove={from:move.from,to:move.to};selected=null;targets=[];render();return;}
+    }
+    if(piece && piece.color===game.turn()){
+      selected=sq;
+      targets=game.moves({square:sq,verbose:true}).map(m=>m.to);
+    } else {selected=null;targets=[];}
+    render();
+  }
+  function updateInfo(){
+    let msg=game.turn()==="w"?"Ruch białych":"Ruch czarnych";
+    if(game.in_checkmate()) msg="Mat! "+(game.turn()==="w"?"Czarne":"Białe")+" wygrywają.";
+    else if(game.in_draw()) msg="Remis.";
+    else if(game.in_check()) msg+=" — szach!";
+    status.textContent=msg;
+    const history=game.history();
+    if(!history.length){moves.textContent="Partia jeszcze się nie rozpoczęła.";return;}
+    let lines=[];
+    for(let i=0;i<history.length;i+=2) lines.push(`${Math.floor(i/2)+1}. ${history[i]}${history[i+1]?"  "+history[i+1]:""}`);
+    moves.textContent=lines.join("\n");
+    moves.scrollTop=moves.scrollHeight;
+  }
+  document.getElementById("reset").addEventListener("click",()=>{game.reset();selected=null;targets=[];lastMove=null;render()});
+  document.getElementById("undo").addEventListener("click",()=>{game.undo();selected=null;targets=[];lastMove=null;render()});
+  document.getElementById("flip").addEventListener("click",()=>{flipped=!flipped;render()});
+  render();
+})();
+</script>
+</body>
+</html> 
