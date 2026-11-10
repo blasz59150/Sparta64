@@ -51,6 +51,9 @@
       <button class="action" id="reset">Nowa partia</button>
       <button class="action secondary" id="undo">Cofnij ruch</button>
       <button class="action secondary" id="flip">Obróć planszę</button>
+      <button class="action secondary" id="exportPgn">Pobierz PGN</button>
+      <button class="action secondary" id="importPgn">Wczytaj PGN</button>
+      <input id="pgnFile" type="file" accept=".pgn,text/plain" hidden>
     </div>
     <div id="engineState">Silnik uruchomi się dopiero po wybraniu „Graj z komputerem”.</div>
   </section>
@@ -58,6 +61,8 @@
     <h2>Przebieg partii</h2>
     <div id="status" role="status" aria-live="polite">Ładowanie szachownicy…</div>
     <h3>Ruchy</h3><div id="moves" class="move-list">Partia jeszcze się nie rozpoczęła.</div>
+    <h3>Partie PGN</h3>
+    <p class="note">PGN to standardowy zapis partii szachowej. Możesz pobrać aktualną partię do pliku albo wczytać wcześniej zapisaną partię PGN.</p>
     <h3>Jak testować?</h3>
     <p class="note">Dotknij figury, a następnie pola docelowego. Złote kropki pokazują legalne ruchy. Promocja pionka w tym prototypie odbywa się automatycznie na hetmana.</p>
     <p class="note"><strong>Gra z komputerem:</strong> wybierz tryb, kolor i kliknij „Nowa partia”. Pierwsze uruchomienie pobierze silnik Stockfish (około 1,7 MB).</p>
@@ -162,9 +167,37 @@
     selected=null;targets=[];lastMove=null;render();
   });
   document.getElementById("flip").addEventListener("click",()=>{flipped=!flipped;render();});
+  document.getElementById("exportPgn").addEventListener("click",()=>{
+    if(!game.history().length){status.textContent="Nie ma jeszcze ruchów do zapisania.";return;}
+    const pgn=game.pgn({max_width:80});
+    const blob=new Blob([pgn+"\n"],{type:"application/x-chess-pgn;charset=utf-8"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="SPARTA64-partia-"+new Date().toISOString().slice(0,10)+".pgn";
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    status.textContent="Partia została pobrana w formacie PGN.";
+  });
+  const pgnInput=document.getElementById("pgnFile");
+  document.getElementById("importPgn").addEventListener("click",()=>pgnInput.click());
+  pgnInput.addEventListener("change",async()=>{
+    const file=pgnInput.files&&pgnInput.files[0];if(!file)return;
+    try{
+      const text=await file.text(),loaded=new Chess();
+      const ok=loaded.load_pgn(text);
+      if(!ok)throw new Error("Nieprawidłowy PGN");
+      if(thinking&&engine)engine.postMessage("stop");
+      thinking=false;
+      // Odtwarzamy zapisane ruchy w bieżącej partii, aby zachować historię do eksportu.
+      const sans=loaded.history();
+      game.reset();
+      for(const san of sans){if(!game.move(san))throw new Error("Nie udało się odtworzyć ruchów");}
+      selected=null;targets=[];lastMove=null;render();
+      status.textContent="Wczytano partię PGN. Możesz ją przejrzeć lub kontynuować.";
+    }catch(err){status.textContent="Nie udało się wczytać PGN. Sprawdź, czy plik zawiera poprawny zapis partii."; }
+    pgnInput.value="";
+  });
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
   render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
 })();
 </script>
 </body>
-</html>
+</html> 
