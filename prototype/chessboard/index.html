@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#17191d">
-  <title>SPARTA 64 — Prototyp szachownicy</title>
+  <title>SPARTA 64 — Szachownica treningowa</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <style>
     :root{--bg:#f4f1e9;--card:#fffdf8;--ink:#25282d;--muted:#70757d;--red:#a92e32;--gold:#c5a45b;--light:#eee7d8;--dark:#aeb7ad;--line:#e6e0d5}
@@ -24,108 +24,147 @@
     button.secondary{background:#eee9df;color:#34363a}
     button:disabled{opacity:.45;cursor:not-allowed}
     h2{font-size:18px;margin:0 0 12px}h3{font-size:14px;margin:18px 0 6px;color:var(--muted)}
-    #status{font-weight:650;padding:12px;border-radius:10px;background:#f3eee3}
+    #status{font-weight:650;padding:12px;border-radius:10px;background:#f3eee3;min-height:46px}
     .note{color:var(--muted);font-size:13px}.move-list{height:230px;overflow:auto;background:#f8f5ee;border-radius:9px;padding:10px;font:13px ui-monospace,monospace;white-space:pre-wrap}
     .pill{display:inline-block;background:#f5e9c9;color:#6c511b;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700}
     footer{max-width:1050px;margin:0 auto 30px;padding:0 16px;color:var(--muted);font-size:12px}
+    .settings{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 12px}
+    .settings label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .settings select{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit}
+    #engineState{font-size:12px;color:var(--muted);margin-top:8px}
     @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
+    @media(max-width:380px){.settings{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.1</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.2</span></div>
+    <div class="settings">
+      <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
+      <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
+      <div style="grid-column:1/-1"><label for="strength">Siła Stockfisha</label><select id="strength"><option value="0">1 — początkujący</option><option value="4">2 — łatwy</option><option value="8" selected>3 — średni</option><option value="12">4 — mocny</option><option value="16">5 — bardzo mocny</option></select></div>
+    </div>
     <div id="board" class="board" aria-label="Szachownica"></div>
     <div class="toolbar">
       <button class="action" id="reset">Nowa partia</button>
       <button class="action secondary" id="undo">Cofnij ruch</button>
       <button class="action secondary" id="flip">Obróć planszę</button>
     </div>
+    <div id="engineState">Silnik uruchomi się dopiero po wybraniu „Graj z komputerem”.</div>
   </section>
   <aside class="panel">
     <h2>Przebieg partii</h2>
-    <div id="status">Ładowanie szachownicy…</div>
+    <div id="status" role="status" aria-live="polite">Ładowanie szachownicy…</div>
     <h3>Ruchy</h3><div id="moves" class="move-list">Partia jeszcze się nie rozpoczęła.</div>
     <h3>Jak testować?</h3>
-    <p class="note">Dotknij figury, a następnie pola docelowego. Zielone kropki pokazują legalne ruchy. Prototyp obsługuje reguły gry dzięki bibliotece chess.js.</p>
-    <p class="note"><strong>Na tym etapie:</strong> bez kont, zapisu na serwerze i Stockfish. Najpierw sprawdzamy poprawność interakcji i reguł szachowych.</p>
+    <p class="note">Dotknij figury, a następnie pola docelowego. Złote kropki pokazują legalne ruchy. Promocja pionka w tym prototypie odbywa się automatycznie na hetmana.</p>
+    <p class="note"><strong>Gra z komputerem:</strong> wybierz tryb, kolor i kliknij „Nowa partia”. Pierwsze uruchomienie pobierze silnik Stockfish (około 1,7 MB).</p>
+    <p class="note">To prototyp techniczny. Nie zapisuje jeszcze partii na serwerze i nie obsługuje kont zawodników.</p>
   </aside>
 </main>
-<footer>SPARTA 64 · Prototyp techniczny — nie jest jeszcze wersją produkcyjną.</footer>
+<footer>SPARTA 64 · Prototyp techniczny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
-  if (typeof Chess === "undefined") {
-    document.getElementById("status").textContent = "Nie udało się pobrać biblioteki szachowej. Sprawdź połączenie z internetem i odśwież stronę.";
-    return;
-  }
-  const game = new Chess();
-  const board = document.getElementById("board");
-  const status = document.getElementById("status");
-  const moves = document.getElementById("moves");
-  let selected = null, targets = [], flipped = false, lastMove = null;
-  const symbols = {
-    wp:"♙",wn:"♘",wb:"♗",wr:"♖",wq:"♕",wk:"♔",
-    bp:"♟",bn:"♞",bb:"♝",br:"♜",bq:"♛",bk:"♚"
-  };
-  const files = ["a","b","c","d","e","f","g","h"];
-  function orderedSquares(){
-    const out=[];
-    for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-      const file=flipped?7-c:c, rank=flipped?r+1:8-r;
-      out.push(files[file]+rank);
-    }
-    return out;
-  }
+  const status=document.getElementById("status");
+  const engineState=document.getElementById("engineState");
+  if(typeof Chess==="undefined"){status.textContent="Nie udało się pobrać biblioteki szachowej. Sprawdź internet i odśwież stronę.";return;}
+  const game=new Chess(),board=document.getElementById("board"),moves=document.getElementById("moves");
+  const opponent=document.getElementById("opponent"),playerColor=document.getElementById("playerColor"),strength=document.getElementById("strength");
+  let selected=null,targets=[],flipped=false,lastMove=null,engine=null,engineReady=false,engineLoading=false,thinking=false,playerSide="w",pendingStart=false;
+  const symbols={wp:"♙",wn:"♘",wb:"♗",wr:"♖",wq:"♕",wk:"♔",bp:"♟",bn:"♞",bb:"♝",br:"♜",bq:"♛",bk:"♚"};
+  const files=["a","b","c","d","e","f","g","h"];
+  function orderedSquares(){const out=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const file=flipped?7-c:c,rank=flipped?r+1:8-r;out.push(files[file]+rank);}return out;}
+  function isComputerTurn(){return opponent.value==="computer"&&game.turn()!==playerSide;}
   function render(){
     board.innerHTML="";
     orderedSquares().forEach((sq,i)=>{
-      const file=files.indexOf(sq[0]), rank=Number(sq[1]);
-      const el=document.createElement("button");
-      el.className="sq "+(((file+rank)%2===0)?"light":"dark");
-      if(sq===selected) el.classList.add("selected");
-      if(targets.includes(sq)) el.classList.add("target");
-      if(lastMove && (sq===lastMove.from||sq===lastMove.to)) el.classList.add("last");
-      el.setAttribute("aria-label",sq);
-      const piece=game.get(sq);
-      if(piece) el.textContent=symbols[piece.color+piece.type];
-      if(i%8===0){const c=document.createElement("span");c.className="coords";c.textContent=sq[1];el.append(c)}
-      if(i>=56){const c=document.createElement("span");c.className="coords";c.style.left="auto";c.style.right="4px";c.style.top="auto";c.style.bottom="2px";c.textContent=sq[0];el.append(c)}
-      el.addEventListener("click",()=>onSquare(sq));
-      board.append(el);
+      const file=files.indexOf(sq[0]),rank=Number(sq[1]),el=document.createElement("button");
+      el.type="button";el.className="sq "+(((file+rank)%2===0)?"light":"dark");
+      if(sq===selected)el.classList.add("selected");if(targets.includes(sq))el.classList.add("target");if(lastMove&&(sq===lastMove.from||sq===lastMove.to))el.classList.add("last");
+      el.setAttribute("aria-label",sq);const piece=game.get(sq);if(piece)el.textContent=symbols[piece.color+piece.type];
+      if(i%8===0){const c=document.createElement("span");c.className="coords";c.textContent=sq[1];el.append(c);}
+      if(i>=56){const c=document.createElement("span");c.className="coords";c.style.left="auto";c.style.right="4px";c.style.top="auto";c.style.bottom="2px";c.textContent=sq[0];el.append(c);}
+      el.addEventListener("click",()=>onSquare(sq));board.append(el);
     });
     updateInfo();
   }
-  function onSquare(sq){
-    const piece=game.get(sq);
-    if(selected && targets.includes(sq)){
-      const move=game.move({from:selected,to:sq,promotion:"q"});
-      if(move){lastMove={from:move.from,to:move.to};selected=null;targets=[];render();return;}
-    }
-    if(piece && piece.color===game.turn()){
-      selected=sq;
-      targets=game.moves({square:sq,verbose:true}).map(m=>m.to);
-    } else {selected=null;targets=[];}
-    render();
-  }
   function updateInfo(){
     let msg=game.turn()==="w"?"Ruch białych":"Ruch czarnych";
-    if(game.in_checkmate()) msg="Mat! "+(game.turn()==="w"?"Czarne":"Białe")+" wygrywają.";
-    else if(game.in_draw()) msg="Remis.";
-    else if(game.in_check()) msg+=" — szach!";
+    if(game.in_checkmate())msg="Mat! "+(game.turn()==="w"?"Czarne":"Białe")+" wygrywają.";
+    else if(game.in_draw())msg="Remis.";
+    else if(game.in_check())msg+=" — szach!";
+    else if(thinking)msg="Stockfish myśli…";
+    else if(opponent.value==="computer")msg=game.turn()===playerSide?"Twój ruch.": "Ruch komputera.";
     status.textContent=msg;
-    const history=game.history();
-    if(!history.length){moves.textContent="Partia jeszcze się nie rozpoczęła.";return;}
-    let lines=[];
-    for(let i=0;i<history.length;i+=2) lines.push(`${Math.floor(i/2)+1}. ${history[i]}${history[i+1]?"  "+history[i+1]:""}`);
-    moves.textContent=lines.join("\n");
-    moves.scrollTop=moves.scrollHeight;
+    const history=game.history();if(!history.length){moves.textContent="Partia jeszcze się nie rozpoczęła.";return;}
+    const lines=[];for(let i=0;i<history.length;i+=2)lines.push(`${Math.floor(i/2)+1}. ${history[i]}${history[i+1]?"  "+history[i+1]:""}`);
+    moves.textContent=lines.join("\n");moves.scrollTop=moves.scrollHeight;
   }
-  document.getElementById("reset").addEventListener("click",()=>{game.reset();selected=null;targets=[];lastMove=null;render()});
-  document.getElementById("undo").addEventListener("click",()=>{game.undo();selected=null;targets=[];lastMove=null;render()});
-  document.getElementById("flip").addEventListener("click",()=>{flipped=!flipped;render()});
-  render();
+  function onSquare(sq){
+    if(thinking||game.game_over()||isComputerTurn())return;
+    const piece=game.get(sq);
+    if(selected&&targets.includes(sq)){
+      const move=game.move({from:selected,to:sq,promotion:"q"});
+      if(move){lastMove={from:move.from,to:move.to};selected=null;targets=[];render();if(!game.game_over()&&isComputerTurn())computerMove();return;}
+    }
+    if(piece&&piece.color===game.turn()){selected=sq;targets=game.moves({square:sq,verbose:true}).map(m=>m.to);}
+    else{selected=null;targets=[];}
+    render();
+  }
+  function loadEngine(){
+    if(engineReady)return Promise.resolve();
+    if(engineLoading)return new Promise(resolve=>{const timer=setInterval(()=>{if(engineReady||!engineLoading){clearInterval(timer);resolve();}},100);});
+    engineLoading=true;engineState.textContent="Uruchamianie Stockfisha…";
+    return new Promise((resolve,reject)=>{
+      try{
+        engine=new Worker("../stockfish/stockfish-19-lite-single.js");
+        const timeout=setTimeout(()=>{engineLoading=false;engineState.textContent="Nie udało się uruchomić Stockfisha. Sprawdź, czy w katalogu stockfish są pliki JS i WASM.";reject(new Error("timeout"));},20000);
+        engine.onmessage=e=>{
+          const line=String(e.data||"");
+          if(line==="uciok")engine.postMessage("isready");
+          if(line==="readyok"){clearTimeout(timeout);engineReady=true;engineLoading=false;engineState.textContent="Stockfish 19 gotowy.";resolve();}
+          if(line.startsWith("bestmove ")){
+            const uci=line.split(/\s+/)[1];
+            if(uci&&uci!=="(none)"){const m=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci.length>4?uci[4]:"q"});if(m)lastMove={from:m.from,to:m.to};}
+            thinking=false;render();
+            if(game.game_over())finishStatus();else status.textContent="Twój ruch.";
+          }
+        };
+        engine.onerror=()=>{clearTimeout(timeout);engineLoading=false;engineState.textContent="Błąd ładowania Stockfisha. Sprawdź obecność obu plików silnika.";reject(new Error("worker"));};
+        engine.postMessage("uci");
+      }catch(err){engineLoading=false;reject(err);}
+    });
+  }
+  async function computerMove(){
+    if(opponent.value!=="computer"||game.game_over()||game.turn()===playerSide)return;
+    try{await loadEngine();if(game.game_over()||game.turn()===playerSide)return;
+      thinking=true;render();
+      engine.postMessage("setoption name Skill Level value "+Number(strength.value));
+      engine.postMessage("position fen "+game.fen());
+      engine.postMessage("go depth "+(8+Number(strength.value)));
+    }catch(err){status.textContent="Nie udało się uruchomić silnika. Sprawdź pliki Stockfish w repozytorium.";thinking=false;render();}
+  }
+  function finishStatus(){if(game.in_checkmate())status.textContent="Mat! "+(game.turn()===playerSide?"Komputer wygrywa.":"Wygrałeś!");else if(game.in_draw())status.textContent="Remis.";else status.textContent="Koniec partii.";}
+  async function newGame(){
+    if(thinking&&engine)engine.postMessage("stop");
+    thinking=false;game.reset();selected=null;targets=[];lastMove=null;playerSide=playerColor.value;render();
+    if(opponent.value==="computer"){
+      try{await loadEngine();if(playerSide==="b")computerMove();else status.textContent="Twój ruch — grasz białymi.";}
+      catch(e){status.textContent="Silnik nie jest jeszcze gotowy. Sprawdź pliki w katalogu prototype/stockfish/.";}
+    }else status.textContent="Partia dla dwóch graczy. Ruch białych.";
+  }
+  document.getElementById("reset").addEventListener("click",newGame);
+  document.getElementById("undo").addEventListener("click",()=>{
+    if(thinking){if(engine)engine.postMessage("stop");thinking=false;}
+    if(game.history().length){game.undo();if(opponent.value==="computer"&&game.history().length&&game.turn()!==playerSide)game.undo();}
+    selected=null;targets=[];lastMove=null;render();
+  });
+  document.getElementById("flip").addEventListener("click",()=>{flipped=!flipped;render();});
+  opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
+  render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
 })();
 </script>
 </body>
-</html> 
+</html>
