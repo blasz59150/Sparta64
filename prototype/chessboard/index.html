@@ -32,6 +32,11 @@
     .settings label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
     .settings select{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit}
     #engineState{font-size:12px;color:var(--muted);margin-top:8px}
+    .trainer-box{margin-top:14px;padding:12px;background:#f8f5ee;border:1px solid var(--line);border-radius:12px}
+    #trainerBoard{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,360px);aspect-ratio:1;border:4px solid #ded5c4;border-radius:7px;overflow:hidden;margin:10px auto}
+    .tsq{border:0;padding:0;display:grid;place-items:center;position:relative;aspect-ratio:1;font-family:"DejaVu Sans",serif;font-size:clamp(19px,4.6vw,36px);line-height:1;cursor:pointer}
+    .tsq.light{background:#f0e8d8}.tsq.dark{background:#aeb8aa}.tsq.selected{box-shadow:inset 0 0 0 3px #d6a83e}.tsq.target:after{content:"";position:absolute;width:22%;height:22%;border-radius:50%;background:#b8872c99}.tsq.hint{box-shadow:inset 0 0 0 4px #d6a83e}
+    #trainerMessage{min-height:48px;padding:9px;background:#fffdf8;border-radius:8px;font-size:13px;margin:8px 0}
     @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
     @media(max-width:380px){.settings{grid-template-columns:1fr}}
   </style>
@@ -40,7 +45,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.5</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.6</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -66,6 +71,19 @@
     <div id="analysisState" class="note">Po rozegraniu lub wczytaniu partii kliknij „Analizuj partię”. Analiza jest orientacyjna i zależy od głębokości obliczeń.</div>
     <div id="analysisSummary" class="note" style="margin:8px 0;padding:10px;background:#f8f5ee;border-radius:9px">Po analizie pojawi się podsumowanie partii i najważniejsze momenty.</div>
     <div id="analysisResults" class="move-list" style="height:260px;margin-top:8px">Brak analizy.</div>
+    <h3>Trener interaktywny · ćwicz swoje błędy</h3>
+    <div class="trainer-box">
+      <p class="note" style="margin-top:0">Po analizie partii wybierz zadanie i spróbuj samodzielnie znaleźć lepszy ruch. Trener korzysta z pozycji i najlepszego ruchu wskazanego przez Stockfisha.</p>
+      <div id="trainerProgress" class="pill">Brak zadań — najpierw przeanalizuj partię</div>
+      <div id="trainerBoard" aria-label="Szachownica treningowa"></div>
+      <div id="trainerMessage" role="status" aria-live="polite">Tutaj pojawi się zadanie treningowe.</div>
+      <div class="toolbar" style="margin-top:8px">
+        <button class="action" id="startTraining" disabled>Rozpocznij trening</button>
+        <button class="action secondary" id="trainerHint" disabled>Podpowiedź</button>
+        <button class="action secondary" id="nextTask" disabled>Następne zadanie</button>
+      </div>
+      <p class="note" id="trainerPoints">Punkty treningowe: 0</p>
+    </div>
     <h3>Partie PGN</h3>
     <p class="note">PGN to standardowy zapis partii szachowej. Możesz pobrać aktualną partię do pliku albo wczytać wcześniej zapisaną partię PGN.</p>
     <h3>Jak testować?</h3>
@@ -74,7 +92,7 @@
     <p class="note">To prototyp techniczny. Nie zapisuje jeszcze partii na serwerze i nie obsługuje kont zawodników.</p>
   </aside>
 </main>
-<footer>SPARTA 64 · Prototyp 0.5 · Raport treningowy Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<footer>SPARTA 64 · Prototyp 0.6 · Raport treningowy Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -273,7 +291,7 @@
         const moveLabel=`${Math.floor(i/2)+1}${i%2===0?".":"..."} ${actual.san}`;
         const tip=coachingTip(label,bestSan);
         rows.push(`${moveLabel} — ${label} (strata ~${Math.round(loss)} cp; najlepszy: ${bestSan})\n   ${tip}`);
-        details.push({move:moveLabel,label,loss:Math.round(loss),bestSan,tip});
+        details.push({move:moveLabel,label,loss:Math.round(loss),bestSan,bestUci:best.bestmove,fen:before,tip});
         analysisState.textContent=`Analiza w toku: ${i+1} z ${sans.length} półruchów (głębokość ${depth}).`;
         analysisResults.textContent=rows.join("\n\n");
       }
@@ -284,9 +302,68 @@
       const keyLine=critical.length?critical.map((d,i)=>`${i+1}. ${d.move} — ${d.label} (~${d.loss} cp). Lepszy ruch: ${d.bestSan}.`).join("\n"):"Nie wykryto dużych strat w analizowanych ruchach.";
       analysisSummary.textContent=`PODSUMOWANIE (${details.length} półruchów)\n${countLine}\n\nNAJWAŻNIEJSZE MOMENTY\n${keyLine}\n\nWskazówka treningowa: przed każdym ruchem sprawdzaj szachy, możliwe bicia i groźby przeciwnika.`;
       analysisState.textContent="Analiza zakończona. Oceny są przybliżone (głębokość 10) i służą treningowi, nie są oficjalną oceną turniejową.";
+      trainerTasks=details.filter(d=>d.loss>10&&d.bestUci&&d.bestUci!=="(none)").sort((a,b)=>b.loss-a.loss);
+      trainerIndex=0;trainerGame=null;trainerSelected=null;trainerTargets=[];trainerSolved=false;hintLevel=0;
+      startTraining.disabled=trainerTasks.length===0;trainerHint.disabled=true;nextTask.disabled=true;
+      trainerProgress.textContent=trainerTasks.length?`Gotowe zadania: ${trainerTasks.length}`:"Brak błędów do przećwiczenia — świetna partia!";
+      trainerMessage.textContent=trainerTasks.length?"Analiza gotowa. Kliknij „Rozpocznij trening”, aby poprawić swoje błędy.":"Nie znaleziono ruchów z istotną stratą punktową.";
+      renderTrainer();
     }catch(err){analysisState.textContent="Analiza przerwana: "+err.message+". Spróbuj ponownie przy stabilnym połączeniu.";}
     finally{if(worker)worker.terminate();button.disabled=false;}
   }
+  // Interaktywny trener: osobna plansza, nie zmienia przebiegu ani PGN głównej partii.
+  const trainerBoard=document.getElementById("trainerBoard"),trainerMessage=document.getElementById("trainerMessage");
+  const trainerProgress=document.getElementById("trainerProgress"),trainerPoints=document.getElementById("trainerPoints");
+  const startTraining=document.getElementById("startTraining"),trainerHint=document.getElementById("trainerHint"),nextTask=document.getElementById("nextTask");
+  let trainerTasks=[],trainerIndex=0,trainerGame=null,trainerSelected=null,trainerTargets=[],trainerSolved=false,trainerScore=0,hintLevel=0;
+  function currentTask(){return trainerTasks[trainerIndex]||null;}
+  function renderTrainer(){
+    trainerBoard.innerHTML="";
+    if(!trainerGame){trainerProgress.textContent=trainerTasks.length?`Zadań: ${trainerTasks.length}`:"Brak zadań — najpierw przeanalizuj partię";return;}
+    for(let rank=8;rank>=1;rank--)for(let file=0;file<8;file++){
+      const sq=files[file]+rank,el=document.createElement("button"),piece=trainerGame.get(sq);
+      el.type="button";el.className="tsq "+(((file+rank)%2===0)?"light":"dark");
+      if(sq===trainerSelected)el.classList.add("selected");if(trainerTargets.includes(sq))el.classList.add("target");
+      const task=currentTask();if(task&&hintLevel>0&&task.bestUci&&((hintLevel===1&&sq===task.bestUci.slice(0,2))||(hintLevel>=2&&(sq===task.bestUci.slice(0,2)||sq===task.bestUci.slice(2,4)))))el.classList.add("hint");
+      if(piece)el.textContent=symbols[piece.color+piece.type];el.setAttribute("aria-label",sq);el.addEventListener("click",()=>trainerSquare(sq));trainerBoard.append(el);
+    }
+    const t=currentTask();trainerProgress.textContent=t?`Zadanie ${trainerIndex+1} z ${trainerTasks.length} · ${t.move} · ${t.label}`:"Koniec zadań";
+  }
+  function trainerSquare(sq){
+    if(!trainerGame||trainerSolved||!currentTask())return;
+    const piece=trainerGame.get(sq);
+    if(trainerSelected&&trainerTargets.includes(sq)){
+      const made=trainerGame.move({from:trainerSelected,to:sq,promotion:"q"});trainerSelected=null;trainerTargets=[];
+      if(made){
+        const t=currentTask(),uci=made.from+made.to+(made.promotion||"");
+        if(uci===t.bestUci){trainerSolved=true;trainerScore+=hintLevel===0?3:hintLevel===1?2:1;trainerMessage.textContent=`Świetnie! ${made.san} to ruch wskazany przez Stockfisha. Zdobywasz ${hintLevel===0?3:hintLevel===1?2:1} pkt. ${t.tip}`;trainerPoints.textContent=`Punkty treningowe: ${trainerScore}`;nextTask.disabled=false;trainerHint.disabled=true;}
+        else{trainerGame.undo();trainerMessage.textContent=`To legalny ruch, ale nie jest najlepszym rozwiązaniem. Spróbuj ponownie. ${t.tip}`;}
+      }
+      renderTrainer();return;
+    }
+    if(piece&&piece.color===trainerGame.turn()){trainerSelected=sq;trainerTargets=trainerGame.moves({square:sq,verbose:true}).map(m=>m.to);}else{trainerSelected=null;trainerTargets=[];}
+    renderTrainer();
+  }
+  function beginTraining(){
+    if(!trainerTasks.length)return;trainerIndex=0;trainerScore=0;trainerPoints.textContent="Punkty treningowe: 0";loadTrainingTask();
+  }
+  function loadTrainingTask(){
+    const t=currentTask();if(!t){trainerGame=null;renderTrainer();trainerMessage.textContent=`Trening ukończony! Zdobyte punkty: ${trainerScore}. Brawo!`;startTraining.disabled=false;trainerHint.disabled=true;nextTask.disabled=true;return;}
+    trainerGame=new Chess();if(!trainerGame.load(t.fen)){trainerMessage.textContent="Nie udało się odtworzyć pozycji treningowej.";return;}
+    trainerSelected=null;trainerTargets=[];trainerSolved=false;hintLevel=0;trainerHint.disabled=false;nextTask.disabled=true;
+    const side=trainerGame.turn()==="w"?"białych":"czarnych";
+    trainerMessage.textContent=`Twoja kolej: znajdź lepszy ruch dla ${side}. W partii zagrano ${t.move}. Spróbuj poprawić ten ruch.`;
+    renderTrainer();
+  }
+  startTraining.addEventListener("click",beginTraining);
+  trainerHint.addEventListener("click",()=>{
+    if(!currentTask()||trainerSolved)return;hintLevel=Math.min(2,hintLevel+1);
+    const t=currentTask();
+    trainerMessage.textContent=hintLevel===1?`Podpowiedź: właściwa figura stoi na polu ${t.bestUci.slice(0,2)}.`:`Podpowiedź: ruch to ${t.bestSan}. Zaznaczone są pola ruchu.`;
+    renderTrainer();
+  });
+  nextTask.addEventListener("click",()=>{trainerIndex++;loadTrainingTask();});
+
   document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
   render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
