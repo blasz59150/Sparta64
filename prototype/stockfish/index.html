@@ -1,1 +1,144 @@
-
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SPARTA 64 — Gra z komputerem</title>
+<style>
+:root{--bg:#101114;--panel:#1b1d22;--gold:#d5ad52;--red:#9f2028;--light:#eee6d6;--dark:#8a6b50;--text:#f4f0e8;--muted:#aaa39a}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#17181c,#090a0c);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:18px 16px 12px;text-align:center;border-bottom:1px solid #39332a}
+.logo{font-weight:900;letter-spacing:3px;color:var(--gold);font-size:25px}.sub{font-size:12px;color:var(--muted);letter-spacing:2px;margin-top:3px}
+main{max-width:760px;margin:0 auto;padding:14px}
+.card{background:var(--panel);border:1px solid #37312a;border-radius:15px;padding:14px;margin-bottom:13px;box-shadow:0 8px 24px #0005}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+select,button{font:inherit;border-radius:10px;padding:11px 12px;border:1px solid #514735;background:#292a2e;color:var(--text)}
+button{cursor:pointer;font-weight:650}button.primary{background:var(--red);border-color:#bd3942}button:disabled{opacity:.45;cursor:not-allowed}
+#status{font-size:14px;color:var(--gold);min-height:22px;margin-bottom:8px}
+#board{width:min(92vw,560px);aspect-ratio:1;margin:0 auto;display:grid;grid-template-columns:repeat(8,1fr);border:5px solid #443a2d;border-radius:5px;overflow:hidden;touch-action:manipulation}
+.sq{display:flex;align-items:center;justify-content:center;position:relative;font-size:clamp(28px,8vw,54px);line-height:1;user-select:none;cursor:pointer}
+.sq.light{background:var(--light)}.sq.dark{background:var(--dark)}
+.sq.selected{outline:4px solid var(--gold);outline-offset:-4px}
+.sq.target:after{content:"";width:24%;height:24%;border-radius:50%;background:#1b6d45aa;position:absolute}
+.sq.capture:after{content:"";position:absolute;inset:4px;border:4px solid #a32929aa;border-radius:50%}
+.piece{filter:drop-shadow(0 1px 1px #0005);pointer-events:none}
+#moves{max-height:130px;overflow:auto;color:#ddd;font-family:ui-monospace,monospace;font-size:13px;line-height:1.7}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+#thinking{height:5px;background:#353535;border-radius:9px;overflow:hidden;margin-top:8px}
+#thinking span{display:block;height:100%;width:0;background:var(--gold);transition:width .25s}
+@media(min-width:650px){.layout{display:grid;grid-template-columns:1fr 220px;gap:14px;align-items:start}.side .card{margin-bottom:12px}}
+</style>
+</head>
+<body>
+<header><div class="logo">♜ SPARTA 64</div><div class="sub">GRA TRENINGOWA • PROTOTYP 02</div></header>
+<main>
+ <div class="card">
+  <div class="row">
+   <div><label>Grasz jako</label><select id="side"><option value="w">Białymi</option><option value="b">Czarnymi</option></select></div>
+   <div><label>Poziom komputera</label><select id="level"><option value="0">1 — początkujący</option><option value="2">2 — łatwy</option><option value="4" selected>3 — klubowy</option><option value="7">4 — mocny</option><option value="10">5 — bardzo mocny</option></select></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="primary" id="new">Nowa partia</button><button id="undo">Cofnij ruch</button><button id="flip">Obróć planszę</button></div>
+ </div>
+ <div class="layout">
+  <section class="card">
+   <div id="status">Łączenie z silnikiem Stockfish…</div>
+   <div id="board" aria-label="Szachownica"></div>
+   <div id="thinking"><span id="progress"></span></div>
+  </section>
+  <aside class="side">
+   <div class="card"><strong>Historia partii</strong><div id="moves" style="margin-top:8px">Brak ruchów.</div></div>
+   <div class="card"><strong>Informacje</strong><p class="note">Wybierz figurę, a następnie pole docelowe. Komputer odpowiada automatycznie. Poziom wpływa na siłę gry i czas namysłu.</p><p class="note">To prototyp testowy. Silnik pobierany jest z internetu przy pierwszym uruchomieniu.</p></div>
+  </aside>
+ </div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script>
+(() => {
+ const $=id=>document.getElementById(id);
+ const game=new Chess();
+ const glyph={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟'};
+ let selected=null,targets=[],flipped=false,engine=null,engineReady=false,busy=false,playerSide='w';
+ const status=t=>$('status').textContent=t;
+ function initEngine(){
+   try{
+    engine=new Worker('https://cdn.jsdelivr.net/npm/stockfish@19.0.1/bin/stockfish-19-lite-single.js');
+    engine.onmessage=e=>{
+      const line=String(e.data||'');
+      if(line==='uciok'){engine.postMessage('isready');}
+      if(line==='readyok'){engineReady=true;status('Stockfish gotowy. Możesz rozpocząć partię!');startGame();}
+      if(line.startsWith('bestmove ')){
+        const uci=line.split(/\s+/)[1];
+        if(uci && uci!=='(none)'){
+          game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci.length>4?uci[4]:'q'});
+        }
+        busy=false;$('progress').style.width='0%';render();
+        if(game.game_over())endStatus();
+        else status('Twój ruch.');
+      }
+    };
+    engine.onerror=()=>{status('Nie udało się uruchomić Stockfish. Sprawdź internet i otwórz plik ponownie.');};
+    engine.postMessage('uci');
+    status('Pobieranie i uruchamianie Stockfish…');
+   }catch(err){status('Przeglądarka zablokowała uruchomienie silnika.');}
+ }
+ function startGame(){
+   game.reset();selected=null;targets=[];playerSide=$('side').value;busy=false;render();
+   if(playerSide==='b')computerMove();else status('Twój ruch — grasz białymi.');
+ }
+ function render(){
+   const board=$('board');board.innerHTML='';
+   const files=flipped?['h','g','f','e','d','c','b','a']:['a','b','c','d','e','f','g','h'];
+   const ranks=flipped?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
+   ranks.forEach(r=>files.forEach(f=>{
+     const sq=f+r,el=document.createElement('div');
+     const fileIndex=f.charCodeAt(0)-97;
+     el.className='sq '+((fileIndex+r)%2===0?'light':'dark');
+     if(selected===sq)el.classList.add('selected');
+     if(targets.includes(sq))el.classList.add(game.get(sq)?'capture':'target');
+     const p=game.get(sq);
+     if(p){const span=document.createElement('span');span.className='piece';span.textContent=glyph[p.color+p.type];span.style.color=p.color==='w'?'#fff':'#171717';span.style.webkitTextStroke=p.color==='w'?'1px #555':'0';el.appendChild(span);}
+     el.addEventListener('click',()=>tap(sq));board.appendChild(el);
+   }));
+   const hist=game.history();
+   $('moves').textContent=hist.length?hist.reduce((a,m,i)=>{if(i%2===0)a.push((Math.floor(i/2)+1)+'. '+m);else a[a.length-1]+='  '+m;return a},[]).join('\n'):'Brak ruchów.';
+   $('moves').scrollTop=$('moves').scrollHeight;
+   $('undo').disabled=hist.length===0||busy;
+ }
+ function tap(sq){
+   if(busy||game.game_over()||game.turn()!==playerSide)return;
+   const p=game.get(sq);
+   if(selected && targets.includes(sq)){
+     game.move({from:selected,to:sq,promotion:'q'});selected=null;targets=[];render();
+     if(game.game_over()){endStatus();return;}
+     status('Stockfish myśli…');computerMove();return;
+   }
+   if(p&&p.color===playerSide){selected=sq;targets=game.moves({square:sq,verbose:true}).map(m=>m.to);}
+   else{selected=null;targets=[];}
+   render();
+ }
+ function computerMove(){
+   if(!engineReady||busy||game.game_over())return;
+   busy=true;const level=Number($('level').value);
+   engine.postMessage('setoption name Skill Level value '+level);
+   engine.postMessage('position fen '+game.fen());
+   engine.postMessage('go depth '+(8+level));
+   $('progress').style.width='65%';$('undo').disabled=true;
+ }
+ function endStatus(){
+   if(game.in_checkmate())status(game.turn()===playerSide?'Mat! Przegrałeś tę partię.':'Mat! Wygrałeś partię! Brawo!');
+   else if(game.in_draw())status('Remis.');
+   else status('Koniec partii.');
+ }
+ $('new').onclick=()=>{if(!engineReady){status('Silnik jeszcze się uruchamia…');return;}startGame();};
+ $('undo').onclick=()=>{
+   if(busy)return;
+   if(game.history().length){game.undo();if(game.turn()!==playerSide&&game.history().length)game.undo();selected=null;targets=[];render();status('Cofnięto ostatnią wymianę ruchów.');}
+ };
+ $('flip').onclick=()=>{flipped=!flipped;render();};
+ $('side').onchange=()=>{if(engineReady)startGame();};
+ initEngine();render();
+})();
+</script>
+</body>
+  </html> 
