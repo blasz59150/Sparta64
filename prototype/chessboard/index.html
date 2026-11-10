@@ -40,7 +40,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.4</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.5</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -62,9 +62,10 @@
     <h2>Przebieg partii</h2>
     <div id="status" role="status" aria-live="polite">Ładowanie szachownicy…</div>
     <h3>Ruchy</h3><div id="moves" class="move-list">Partia jeszcze się nie rozpoczęła.</div>
-    <h3>Analiza partii</h3>
+    <h3>Raport trenera · analiza partii</h3>
     <div id="analysisState" class="note">Po rozegraniu lub wczytaniu partii kliknij „Analizuj partię”. Analiza jest orientacyjna i zależy od głębokości obliczeń.</div>
-    <div id="analysisResults" class="move-list" style="height:190px;margin-top:8px">Brak analizy.</div>
+    <div id="analysisSummary" class="note" style="margin:8px 0;padding:10px;background:#f8f5ee;border-radius:9px">Po analizie pojawi się podsumowanie partii i najważniejsze momenty.</div>
+    <div id="analysisResults" class="move-list" style="height:260px;margin-top:8px">Brak analizy.</div>
     <h3>Partie PGN</h3>
     <p class="note">PGN to standardowy zapis partii szachowej. Możesz pobrać aktualną partię do pliku albo wczytać wcześniej zapisaną partię PGN.</p>
     <h3>Jak testować?</h3>
@@ -73,14 +74,14 @@
     <p class="note">To prototyp techniczny. Nie zapisuje jeszcze partii na serwerze i nie obsługuje kont zawodników.</p>
   </aside>
 </main>
-<footer>SPARTA 64 · Prototyp 0.4 · Analiza Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<footer>SPARTA 64 · Prototyp 0.5 · Raport treningowy Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
   const engineState=document.getElementById("engineState");
   if(typeof Chess==="undefined"){status.textContent="Nie udało się pobrać biblioteki szachowej. Sprawdź internet i odśwież stronę.";return;}
   const game=new Chess(),board=document.getElementById("board"),moves=document.getElementById("moves");
-  const analysisState=document.getElementById("analysisState"),analysisResults=document.getElementById("analysisResults");
+  const analysisState=document.getElementById("analysisState"),analysisResults=document.getElementById("analysisResults"),analysisSummary=document.getElementById("analysisSummary");
   const opponent=document.getElementById("opponent"),playerColor=document.getElementById("playerColor"),strength=document.getElementById("strength");
   let selected=null,targets=[],flipped=false,lastMove=null,engine=null,engineReady=false,engineLoading=false,thinking=false,playerSide="w",pendingStart=false;
   const symbols={wp:"♙",wn:"♘",wb:"♗",wr:"♖",wq:"♕",wk:"♔",bp:"♟",bn:"♞",bb:"♝",br:"♜",bq:"♛",bk:"♚"};
@@ -225,13 +226,27 @@
       worker.postMessage("go depth "+depth);
     });
   }
+  function classifyLoss(loss){
+    if(loss<=10)return "Najlepszy ruch";
+    if(loss<=30)return "Niedokładność";
+    if(loss<=80)return "Błąd";
+    if(loss<=200)return "Poważny błąd";
+    return "Duży błąd";
+  }
+  function coachingTip(label,bestSan){
+    if(label==="Najlepszy ruch")return "Dobra robota — ten ruch utrzymuje jakość pozycji.";
+    if(label==="Niedokładność")return `Była dokładniejsza możliwość: ${bestSan}. Porównaj oba ruchy i sprawdź, co poprawia ten wariant.`;
+    if(label==="Błąd")return `Silnik preferuje ${bestSan}. Przed ruchem sprawdź, czy nie pomijasz groźby przeciwnika.`;
+    if(label==="Poważny błąd")return `Znacznie lepsze było ${bestSan}. Zatrzymaj się i sprawdź szachy, bicia oraz bezpośrednie groźby.`;
+    return `To bardzo kosztowny ruch. Silnik wskazuje ${bestSan}. Poszukaj, jak przeciwnik może wykorzystać osłabienie lub zdobyć materiał.`;
+  }
   async function analyzeWholeGame(){
     const sans=game.history();
     if(!sans.length){analysisState.textContent="Najpierw rozegraj partię lub wczytaj plik PGN.";return;}
     const button=document.getElementById("analyzeGame");button.disabled=true;
-    analysisResults.textContent="Przygotowanie analizy…";
+    analysisResults.textContent="Przygotowanie analizy…";analysisSummary.textContent="Liczenie wyników…";
     analysisState.textContent="Uruchamiam osobny silnik analityczny. Proszę nie zamykać strony.";
-    let worker=null;const depth=10,rows=[];
+    let worker=null;const depth=10,rows=[],details=[];
     try{
       worker=new Worker("../stockfish/stockfish-19-lite-single.js");
       await new Promise((resolve,reject)=>{
@@ -242,25 +257,33 @@
       });
       const replay=new Chess();
       for(let i=0;i<sans.length;i++){
-        const before=replay.fen(),mover=replay.turn(),best=await analyzeFen(worker,before,depth);
+        const before=replay.fen(),best=await analyzeFen(worker,before,depth);
         const actual=replay.move(sans[i]);if(!actual)throw new Error("Nie udało się odtworzyć ruchu "+(i+1));
         const after=await analyzeFen(worker,replay.fen(),depth);
         const beforeScore=best.score===null?0:best.score;
         const afterScore=after.score===null?0:-after.score;
         const loss=Math.max(0,beforeScore-afterScore);
-        let label="Dobry ruch";
-        if(loss>=200)label="Poważny błąd";else if(loss>=100)label="Błąd";else if(loss>=50)label="Niedokładność";else if(loss<20)label="Najlepszy / bardzo dobry";
+        const label=classifyLoss(loss);
         let bestSan="—";
         if(best.bestmove&&best.bestmove!=="(none)"){
-          const copy=new Chess(before);const bm=best.bestmove;
+          const copy=new Chess(before),bm=best.bestmove;
           const made=copy.move({from:bm.slice(0,2),to:bm.slice(2,4),promotion:bm.length>4?bm[4]:"q"});
           if(made)bestSan=made.san;
         }
-        rows.push(`${Math.floor(i/2)+1}${i%2===0?".":"..."} ${actual.san} — ${label} (strata ~${Math.round(loss)} cp; najlepszy: ${bestSan})`);
+        const moveLabel=`${Math.floor(i/2)+1}${i%2===0?".":"..."} ${actual.san}`;
+        const tip=coachingTip(label,bestSan);
+        rows.push(`${moveLabel} — ${label} (strata ~${Math.round(loss)} cp; najlepszy: ${bestSan})\n   ${tip}`);
+        details.push({move:moveLabel,label,loss:Math.round(loss),bestSan,tip});
         analysisState.textContent=`Analiza w toku: ${i+1} z ${sans.length} półruchów (głębokość ${depth}).`;
-        analysisResults.textContent=rows.join("\n");
+        analysisResults.textContent=rows.join("\n\n");
       }
-      analysisState.textContent="Analiza zakończona. Oceny są przybliżone — to materiał treningowy, nie oficjalna ocena turniejowa.";
+      const counts={"Najlepszy ruch":0,"Niedokładność":0,"Błąd":0,"Poważny błąd":0,"Duży błąd":0};
+      details.forEach(d=>counts[d.label]++);
+      const critical=[...details].sort((a,b)=>b.loss-a.loss).filter(d=>d.loss>10).slice(0,3);
+      const countLine=Object.entries(counts).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join(" · ")||"Brak danych";
+      const keyLine=critical.length?critical.map((d,i)=>`${i+1}. ${d.move} — ${d.label} (~${d.loss} cp). Lepszy ruch: ${d.bestSan}.`).join("\n"):"Nie wykryto dużych strat w analizowanych ruchach.";
+      analysisSummary.textContent=`PODSUMOWANIE (${details.length} półruchów)\n${countLine}\n\nNAJWAŻNIEJSZE MOMENTY\n${keyLine}\n\nWskazówka treningowa: przed każdym ruchem sprawdzaj szachy, możliwe bicia i groźby przeciwnika.`;
+      analysisState.textContent="Analiza zakończona. Oceny są przybliżone (głębokość 10) i służą treningowi, nie są oficjalną oceną turniejową.";
     }catch(err){analysisState.textContent="Analiza przerwana: "+err.message+". Spróbuj ponownie przy stabilnym połączeniu.";}
     finally{if(worker)worker.terminate();button.disabled=false;}
   }
