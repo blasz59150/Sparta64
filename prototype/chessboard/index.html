@@ -37,6 +37,8 @@
     .tsq{border:0;padding:0;display:grid;place-items:center;position:relative;aspect-ratio:1;font-family:"DejaVu Sans",serif;font-size:clamp(19px,4.6vw,36px);line-height:1;cursor:pointer}
     .tsq.light{background:#f0e8d8}.tsq.dark{background:#aeb8aa}.tsq.selected{box-shadow:inset 0 0 0 3px #d6a83e}.tsq.target:after{content:"";position:absolute;width:22%;height:22%;border-radius:50%;background:#b8872c99}.tsq.hint{box-shadow:inset 0 0 0 4px #d6a83e}
     #trainerMessage{min-height:48px;padding:9px;background:#fffdf8;border-radius:8px;font-size:13px;margin:8px 0}
+    .academy{max-width:1050px;margin:0 auto 24px;padding:0 16px}.academy-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.academy-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}.profile-row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.profile-row label{flex:1;min-width:170px;font-size:12px;color:var(--muted)}.profile-row input{display:block;width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font:inherit;margin-top:4px}.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat{background:#f8f5ee;padding:10px;border-radius:10px;text-align:center}.stat strong{display:block;font-size:22px;color:var(--red)}.badge-list,.library-list{display:grid;gap:8px;margin-top:10px}.badge-item,.library-item{padding:10px;border-radius:10px;background:#f8f5ee;border:1px solid var(--line)}.badge-item.locked{opacity:.45;filter:grayscale(1)}.badge-title{font-weight:700}.library-item{display:flex;justify-content:space-between;align-items:center;gap:10px}.library-item p{margin:3px 0 0;font-size:12px;color:var(--muted)}.levelbar{height:9px;background:#eee9df;border-radius:20px;overflow:hidden;margin-top:8px}.levelbar span{display:block;height:100%;background:var(--gold);width:0%}
+    @media(max-width:760px){.academy-grid{grid-template-columns:1fr}.academy-card{padding:13px}}
     @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
     @media(max-width:380px){.settings{grid-template-columns:1fr}}
   </style>
@@ -45,7 +47,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.6</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.7</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -92,7 +94,28 @@
     <p class="note">To prototyp techniczny. Nie zapisuje jeszcze partii na serwerze i nie obsługuje kont zawodników.</p>
   </aside>
 </main>
-<footer>SPARTA 64 · Prototyp 0.6 · Raport treningowy Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<section class="academy">
+  <div class="academy-grid">
+    <div class="academy-card">
+      <h2>Profil zawodnika</h2>
+      <div class="profile-row"><label for="playerName">Nazwa zawodnika / pseudonim<input id="playerName" maxlength="24" placeholder="Np. Szachowy Wojownik"></label><button class="action" id="saveProfile">Zapisz profil</button></div>
+      <div class="stat-grid"><div class="stat"><strong id="academyXp">0</strong><span class="note">Punkty XP</span></div><div class="stat"><strong id="academyLevel">1</strong><span class="note">Poziom</span></div><div class="stat"><strong id="academySolved">0</strong><span class="note">Rozwiązane</span></div></div>
+      <p class="note" id="academyLevelName">Początkujący</p><div class="levelbar"><span id="academyLevelBar"></span></div>
+      <h3>Odznaki</h3><div id="academyBadges" class="badge-list"></div>
+      <p class="note">Profil demonstracyjny zapisuje się tylko w pamięci tej przeglądarki na tym urządzeniu. Nie jest jeszcze kontem klubowym.</p>
+    </div>
+    <div class="academy-card">
+      <h2>Biblioteka zadań</h2>
+      <p class="note">Zacznij od krótkich zadań taktycznych. Punkty za rozwiązanie trafiają do Twojego profilu.</p>
+      <div class="library-list">
+        <div class="library-item"><div><div class="badge-title">♞ Zbij atakującego skoczka</div><p>Poziom 1 · Obrona · Znajdź ruch, który usuwa szacha.</p></div><button class="action" data-puzzle="knight">Rozwiąż</button></div>
+        <div class="library-item"><div><div class="badge-title">♛ Zdobądź hetmana</div><p>Poziom 1 · Taktyka · Wykorzystaj możliwość bicia hetmana.</p></div><button class="action" data-puzzle="queen">Rozwiąż</button></div>
+      </div>
+      <p class="note" id="libraryMessage" style="margin-top:12px">Wybierz zadanie, aby uruchomić je w trenerze interaktywnym.</p>
+    </div>
+  </div>
+</section>
+<footer>SPARTA 64 · Prototyp 0.7 · Raport treningowy Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -336,7 +359,7 @@
       const made=trainerGame.move({from:trainerSelected,to:sq,promotion:"q"});trainerSelected=null;trainerTargets=[];
       if(made){
         const t=currentTask(),uci=made.from+made.to+(made.promotion||"");
-        if(uci===t.bestUci){trainerSolved=true;trainerScore+=hintLevel===0?3:hintLevel===1?2:1;trainerMessage.textContent=`Świetnie! ${made.san} to ruch wskazany przez Stockfisha. Zdobywasz ${hintLevel===0?3:hintLevel===1?2:1} pkt. ${t.tip}`;trainerPoints.textContent=`Punkty treningowe: ${trainerScore}`;nextTask.disabled=false;trainerHint.disabled=true;}
+        if(uci===t.bestUci){trainerSolved=true;const earned=hintLevel===0?3:hintLevel===1?2:1;trainerScore+=earned;awardAcademyPoints(earned);trainerMessage.textContent=`Świetnie! ${made.san} to prawidłowe rozwiązanie. Zdobywasz ${earned} pkt. ${t.tip}`;trainerPoints.textContent=`Punkty treningowe w tej sesji: ${trainerScore}`;nextTask.disabled=false;trainerHint.disabled=true;}
         else{trainerGame.undo();trainerMessage.textContent=`To legalny ruch, ale nie jest najlepszym rozwiązaniem. Spróbuj ponownie. ${t.tip}`;}
       }
       renderTrainer();return;
@@ -363,6 +386,46 @@
     renderTrainer();
   });
   nextTask.addEventListener("click",()=>{trainerIndex++;loadTrainingTask();});
+
+  // Profil demonstracyjny i postęp zapisywane lokalnie w tej przeglądarce.
+  const academyKey="sparta64_academy_profile_v07";
+  const academyDefaults={name:"Zawodnik Sparty",xp:0,solved:0};
+  let academyData=academyDefaults;
+  try{academyData={...academyDefaults,...JSON.parse(localStorage.getItem(academyKey)||"{}")} }catch(e){}
+  const badgeDefinitions=[
+    {id:"first",name:"Pierwszy krok",desc:"Rozwiąż pierwsze zadanie.",test:d=>d.solved>=1},
+    {id:"five",name:"Wytrwały wojownik",desc:"Rozwiąż 5 zadań.",test:d=>d.solved>=5},
+    {id:"xp25",name:"Złoty pion",desc:"Zdobądź 25 punktów XP.",test:d=>d.xp>=25},
+    {id:"xp100",name:"Spartański talent",desc:"Zdobądź 100 punktów XP.",test:d=>d.xp>=100}
+  ];
+  function saveAcademy(){try{localStorage.setItem(academyKey,JSON.stringify(academyData));}catch(e){}}
+  function renderAcademy(){
+    document.getElementById("playerName").value=academyData.name;
+    document.getElementById("academyXp").textContent=academyData.xp;
+    document.getElementById("academySolved").textContent=academyData.solved;
+    const level=Math.floor(academyData.xp/30)+1,within=academyData.xp%30;
+    const names=["Początkujący","Uczeń Sparty","Taktyk","Strateg","Mistrz Sparty"];
+    document.getElementById("academyLevel").textContent=level;
+    document.getElementById("academyLevelName").textContent=`${names[Math.min(level-1,names.length-1)]} · ${within}/30 XP do kolejnego poziomu`;
+    document.getElementById("academyLevelBar").style.width=(within/30*100)+"%";
+    document.getElementById("academyBadges").innerHTML=badgeDefinitions.map(b=>`<div class="badge-item ${b.test(academyData)?"":"locked"}"><div class="badge-title">${b.test(academyData)?"🏅":"🔒"} ${b.name}</div><div class="note">${b.desc}</div></div>`).join("");
+  }
+  function awardAcademyPoints(points){academyData.xp+=points;academyData.solved+=1;saveAcademy();renderAcademy();}
+  document.getElementById("saveProfile").addEventListener("click",()=>{const value=document.getElementById("playerName").value.trim();academyData.name=value||"Zawodnik Sparty";saveAcademy();renderAcademy();document.getElementById("libraryMessage").textContent="Profil zapisany na tym urządzeniu.";});
+  const academyPuzzles={
+    knight:{fen:"4k3/8/8/8/8/5n2/4Q3/4K3 w - - 0 1",bestUci:"e2f3",bestSan:"Qxf3",move:"Zadanie: usuń szacha",label:"Zadanie taktyczne",tip:"Skoczek szachuje króla. Hetman może go zbić po przekątnej."},
+    queen:{fen:"7k/6pp/8/8/8/8/5q2/4K2R w - - 0 1",bestUci:"e1f2",bestSan:"Kxf2",move:"Zadanie: zdobądź hetmana",label:"Zadanie taktyczne",tip:"Król może zbić hetmana, jeśli pole nie jest bronione. Sprawdź bezpieczeństwo pola f2."}
+  };
+  document.querySelectorAll("[data-puzzle]").forEach(button=>button.addEventListener("click",()=>{
+    const puzzle=academyPuzzles[button.dataset.puzzle];
+    const check=new Chess();if(!check.load(puzzle.fen)){document.getElementById("libraryMessage").textContent="Nie udało się załadować zadania.";return;}
+    trainerTasks=[{...puzzle,loss:0}];trainerIndex=0;trainerGame=null;trainerSolved=false;trainerScore=0;hintLevel=0;trainerSelected=null;trainerTargets=[];
+    startTraining.disabled=false;trainerHint.disabled=true;nextTask.disabled=true;trainerPoints.textContent="Punkty treningowe w tej sesji: 0";
+    trainerProgress.textContent="Zadanie z biblioteki gotowe";trainerMessage.textContent="Zadanie załadowane. Kliknij „Rozpocznij trening” i znajdź najlepszy ruch.";
+    renderTrainer();document.getElementById("libraryMessage").textContent="Zadanie załadowane do trenera powyżej.";
+    document.querySelector(".trainer-box").scrollIntoView({behavior:"smooth",block:"center"});
+  }));
+  renderAcademy();
 
   document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
