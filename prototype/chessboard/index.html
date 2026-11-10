@@ -40,7 +40,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.2</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.4</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -53,6 +53,7 @@
       <button class="action secondary" id="flip">Obróć planszę</button>
       <button class="action secondary" id="exportPgn">Pobierz PGN</button>
       <button class="action secondary" id="importPgn">Wczytaj PGN</button>
+      <button class="action" id="analyzeGame">Analizuj partię</button>
       <input id="pgnFile" type="file" accept=".pgn,text/plain" hidden>
     </div>
     <div id="engineState">Silnik uruchomi się dopiero po wybraniu „Graj z komputerem”.</div>
@@ -61,6 +62,9 @@
     <h2>Przebieg partii</h2>
     <div id="status" role="status" aria-live="polite">Ładowanie szachownicy…</div>
     <h3>Ruchy</h3><div id="moves" class="move-list">Partia jeszcze się nie rozpoczęła.</div>
+    <h3>Analiza partii</h3>
+    <div id="analysisState" class="note">Po rozegraniu lub wczytaniu partii kliknij „Analizuj partię”. Analiza jest orientacyjna i zależy od głębokości obliczeń.</div>
+    <div id="analysisResults" class="move-list" style="height:190px;margin-top:8px">Brak analizy.</div>
     <h3>Partie PGN</h3>
     <p class="note">PGN to standardowy zapis partii szachowej. Możesz pobrać aktualną partię do pliku albo wczytać wcześniej zapisaną partię PGN.</p>
     <h3>Jak testować?</h3>
@@ -69,13 +73,14 @@
     <p class="note">To prototyp techniczny. Nie zapisuje jeszcze partii na serwerze i nie obsługuje kont zawodników.</p>
   </aside>
 </main>
-<footer>SPARTA 64 · Prototyp techniczny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<footer>SPARTA 64 · Prototyp 0.4 · Analiza Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
   const engineState=document.getElementById("engineState");
   if(typeof Chess==="undefined"){status.textContent="Nie udało się pobrać biblioteki szachowej. Sprawdź internet i odśwież stronę.";return;}
   const game=new Chess(),board=document.getElementById("board"),moves=document.getElementById("moves");
+  const analysisState=document.getElementById("analysisState"),analysisResults=document.getElementById("analysisResults");
   const opponent=document.getElementById("opponent"),playerColor=document.getElementById("playerColor"),strength=document.getElementById("strength");
   let selected=null,targets=[],flipped=false,lastMove=null,engine=null,engineReady=false,engineLoading=false,thinking=false,playerSide="w",pendingStart=false;
   const symbols={wp:"♙",wn:"♘",wb:"♗",wr:"♖",wq:"♕",wk:"♔",bp:"♟",bn:"♞",bb:"♝",br:"♜",bq:"♛",bk:"♚"};
@@ -195,6 +200,71 @@
     }catch(err){status.textContent="Nie udało się wczytać PGN. Sprawdź, czy plik zawiera poprawny zapis partii."; }
     pgnInput.value="";
   });
+  function scoreFromInfo(line){
+    const m=line.match(/\bscore\s+(cp|mate)\s+(-?\d+)/);
+    if(!m)return null;
+    return m[1]==="mate" ? (Number(m[2])>0?10000:-10000) : Number(m[2]);
+  }
+  function analyzeFen(worker,fen,depth){
+    return new Promise((resolve,reject)=>{
+      let latest=null,done=false;
+      const timer=setTimeout(()=>{if(!done){done=true;reject(new Error("Przekroczono czas analizy"));}},45000);
+      const previous=worker.onmessage;
+      worker.onmessage=e=>{
+        const line=String(e.data||"");
+        if(line.startsWith("info ")){
+          const d=line.match(/\bdepth\s+(\d+)/),score=scoreFromInfo(line);
+          if(score!==null&&d&&Number(d[1])>=depth)latest=score;
+        }
+        if(line.startsWith("bestmove ")){
+          if(done)return;done=true;clearTimeout(timer);worker.onmessage=previous;
+          resolve({score:latest,bestmove:line.split(/\s+/)[1]||null});
+        }
+      };
+      worker.postMessage("position fen "+fen);
+      worker.postMessage("go depth "+depth);
+    });
+  }
+  async function analyzeWholeGame(){
+    const sans=game.history();
+    if(!sans.length){analysisState.textContent="Najpierw rozegraj partię lub wczytaj plik PGN.";return;}
+    const button=document.getElementById("analyzeGame");button.disabled=true;
+    analysisResults.textContent="Przygotowanie analizy…";
+    analysisState.textContent="Uruchamiam osobny silnik analityczny. Proszę nie zamykać strony.";
+    let worker=null;const depth=10,rows=[];
+    try{
+      worker=new Worker("../stockfish/stockfish-19-lite-single.js");
+      await new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error("Stockfish nie odpowiada")),20000);
+        worker.onmessage=e=>{const line=String(e.data||"");if(line==="uciok")worker.postMessage("isready");if(line==="readyok"){clearTimeout(timer);resolve();}};
+        worker.onerror=()=>{clearTimeout(timer);reject(new Error("Nie udało się uruchomić Stockfisha"));};
+        worker.postMessage("uci");
+      });
+      const replay=new Chess();
+      for(let i=0;i<sans.length;i++){
+        const before=replay.fen(),mover=replay.turn(),best=await analyzeFen(worker,before,depth);
+        const actual=replay.move(sans[i]);if(!actual)throw new Error("Nie udało się odtworzyć ruchu "+(i+1));
+        const after=await analyzeFen(worker,replay.fen(),depth);
+        const beforeScore=best.score===null?0:best.score;
+        const afterScore=after.score===null?0:-after.score;
+        const loss=Math.max(0,beforeScore-afterScore);
+        let label="Dobry ruch";
+        if(loss>=200)label="Poważny błąd";else if(loss>=100)label="Błąd";else if(loss>=50)label="Niedokładność";else if(loss<20)label="Najlepszy / bardzo dobry";
+        let bestSan="—";
+        if(best.bestmove&&best.bestmove!=="(none)"){
+          const copy=new Chess(before);const bm=best.bestmove;
+          const made=copy.move({from:bm.slice(0,2),to:bm.slice(2,4),promotion:bm.length>4?bm[4]:"q"});
+          if(made)bestSan=made.san;
+        }
+        rows.push(`${Math.floor(i/2)+1}${i%2===0?".":"..."} ${actual.san} — ${label} (strata ~${Math.round(loss)} cp; najlepszy: ${bestSan})`);
+        analysisState.textContent=`Analiza w toku: ${i+1} z ${sans.length} półruchów (głębokość ${depth}).`;
+        analysisResults.textContent=rows.join("\n");
+      }
+      analysisState.textContent="Analiza zakończona. Oceny są przybliżone — to materiał treningowy, nie oficjalna ocena turniejowa.";
+    }catch(err){analysisState.textContent="Analiza przerwana: "+err.message+". Spróbuj ponownie przy stabilnym połączeniu.";}
+    finally{if(worker)worker.terminate();button.disabled=false;}
+  }
+  document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
   render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
 })();
