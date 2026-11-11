@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#17191d">
+  <title>SPARTA 64 — Akademia szachowa</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <style>
+    :root{--bg:#f4f1e9;--card:#fffdf8;--ink:#25282d;--muted:#70757d;--red:#a92e32;--gold:#c5a45b;--light:#eee7d8;--dark:#aeb7ad;--line:#e6e0d5}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+    header{background:#191b20;color:white;padding:18px 22px;border-bottom:4px solid var(--red)}
+    .brand{display:flex;align-items:center;gap:13px;max-width:1050px;margin:auto}.crest{width:44px;height:44px;border:2px solid var(--gold);border-radius:50%;display:grid;place-items:center;color:var(--gold);font-size:25px}
+    h1{font-size:21px;letter-spacing:.08em;margin:0}.sub{color:#d9c58f;font-size:12px;letter-spacing:.12em}
+    main{max-width:1050px;margin:26px auto;padding:0 16px;display:grid;grid-template-columns:minmax(280px,620px) minmax(230px,1fr);gap:22px}
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
+    .board{display:grid;grid-template-columns:repeat(8,1fr);width:100%;aspect-ratio:1;border:5px solid #ded5c4;border-radius:8px;overflow:hidden}
+    .sq{border:0;padding:0;display:grid;place-items:center;position:relative;cursor:pointer;aspect-ratio:1;font-family:"DejaVu Sans",serif;font-size:clamp(25px,5.5vw,52px);line-height:1}
+    .sq.light{background:#f0e8d8}.sq.dark{background:#aeb8aa}.sq.selected{box-shadow:inset 0 0 0 4px #d6a83e}.sq.target:after{content:"";position:absolute;width:23%;height:23%;border-radius:50%;background:#b8872c99}
+    .sq.last{background:#d9c77d}.sq:focus-visible{outline:3px solid var(--red);outline-offset:-3px}
+    .coords{position:absolute;left:4px;top:2px;font:10px system-ui;color:#5559}
+    .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+    button.action{border:0;border-radius:9px;padding:10px 14px;background:var(--red);color:white;font-weight:650;cursor:pointer}
+    button.secondary{background:#eee9df;color:#34363a}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    h2{font-size:18px;margin:0 0 12px}h3{font-size:14px;margin:18px 0 6px;color:var(--muted)}
+    #status{font-weight:650;padding:12px;border-radius:10px;background:#f3eee3;min-height:46px}
+    .note{color:var(--muted);font-size:13px}.move-list{height:230px;overflow:auto;background:#f8f5ee;border-radius:9px;padding:10px;font:13px ui-monospace,monospace;white-space:pre-wrap}
+    .pill{display:inline-block;background:#f5e9c9;color:#6c511b;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700}
+    footer{max-width:1050px;margin:0 auto 30px;padding:0 16px;color:var(--muted);font-size:12px}
+    .settings{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 12px}
+    .settings label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+    .settings select{width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit}
+    #engineState{font-size:12px;color:var(--muted);margin-top:8px}
+    .trainer-box{margin-top:14px;padding:12px;background:#f8f5ee;border:1px solid var(--line);border-radius:12px}
+    #trainerBoard{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,360px);aspect-ratio:1;border:4px solid #ded5c4;border-radius:7px;overflow:hidden;margin:10px auto}
+    .tsq{border:0;padding:0;display:grid;place-items:center;position:relative;aspect-ratio:1;font-family:"DejaVu Sans",serif;font-size:clamp(19px,4.6vw,36px);line-height:1;cursor:pointer}
+    .tsq.light{background:#f0e8d8}.tsq.dark{background:#aeb8aa}.tsq.selected{box-shadow:inset 0 0 0 3px #d6a83e}.tsq.target:after{content:"";position:absolute;width:22%;height:22%;border-radius:50%;background:#b8872c99}.tsq.hint{box-shadow:inset 0 0 0 4px #d6a83e}
+    #trainerMessage{min-height:48px;padding:9px;background:#fffdf8;border-radius:8px;font-size:13px;margin:8px 0}
+    .academy{max-width:1050px;margin:0 auto 24px;padding:0 16px}.academy-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.academy-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}.profile-row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.profile-row label{flex:1;min-width:170px;font-size:12px;color:var(--muted)}.profile-row input{display:block;width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font:inherit;margin-top:4px}.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat{background:#f8f5ee;padding:10px;border-radius:10px;text-align:center}.stat strong{display:block;font-size:22px;color:var(--red)}.badge-list,.library-list{display:grid;gap:8px;margin-top:10px}.badge-item,.library-item{padding:10px;border-radius:10px;background:#f8f5ee;border:1px solid var(--line)}.badge-item.locked{opacity:.45;filter:grayscale(1)}.badge-title{font-weight:700}.library-item{display:flex;justify-content:space-between;align-items:center;gap:10px}.library-item p{margin:3px 0 0;font-size:12px;color:var(--muted)}.levelbar{height:9px;background:#eee9df;border-radius:20px;overflow:hidden;margin-top:8px}.levelbar span{display:block;height:100%;background:var(--gold);width:0%}
+    .coach-section{max-width:1050px;margin:0 auto 26px;padding:0 16px}.coach-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}.coach-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.coach-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.coach-controls label{font-size:12px;color:var(--muted)}.coach-controls input,.coach-controls select{display:block;width:100%;min-width:0;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:9px;background:white;font:inherit;color:var(--ink)}.roster-wrap{overflow:auto}.roster{width:100%;border-collapse:collapse;font-size:13px}.roster th,.roster td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line);white-space:nowrap}.roster th{color:var(--muted);font-weight:650}.roster tr.active{background:#f5e9c9}.roster button{padding:6px 9px;border:0;border-radius:7px;background:#eee9df;color:var(--ink);font-weight:650}.coach-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.coach-stat .stat strong{font-size:20px}.assignment-list{display:grid;gap:8px;margin-top:10px}.assignment{padding:10px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px;font-size:13px}.assignment small{display:block;color:var(--muted);margin-top:3px}.coach-message{padding:10px;border-radius:9px;background:#f3eee3;font-size:13px;margin-top:10px;min-height:40px}
+    @media(max-width:760px){.coach-grid{grid-template-columns:1fr}.coach-card{padding:13px}}
+    @media(max-width:760px){.academy-grid{grid-template-columns:1fr}.academy-card{padding:13px}}
+    @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
+    @media(max-width:380px){.settings{grid-template-columns:1fr}}
+
+    .academy09{max-width:1050px;margin:0 auto 28px;padding:0 16px}
+    .academy09-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a;margin-bottom:16px}
+    .a09-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .a09-form{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}
+    .a09-form label{font-size:12px;color:var(--muted)}
+    .a09-form input,.a09-form select,.a09-form textarea{display:block;width:100%;min-width:0;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit}
+    .a09-form .wide{grid-column:1/-1}
+    .a09-list{display:grid;gap:8px;margin-top:10px}
+    .a09-item{padding:11px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}
+    .a09-item-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+    .a09-item p{margin:4px 0;color:var(--muted);font-size:12px}
+    .a09-item select{padding:7px;border:1px solid var(--line);border-radius:7px;background:#fff}
+    .a09-mini{font-size:12px;color:var(--muted)}
+    .a09-rank{width:100%;border-collapse:collapse;font-size:13px}
+    .a09-rank th,.a09-rank td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+    .a09-rank th{color:var(--muted)}
+    .a09-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px}
+    @media(max-width:760px){.a09-grid{grid-template-columns:1fr}.academy09-card{padding:13px}}
+    @media(max-width:420px){.a09-form{grid-template-columns:1fr}.a09-form .wide{grid-column:auto}}
+  
+
+    #spartaReview{max-width:1050px;margin:0 auto 24px;padding:0 16px}
+    #spartaReview .review-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
+    #spartaReview .review-row{padding:12px;margin:9px 0;border:1px solid var(--line);border-radius:10px;background:#f8f5ee;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    #spartaReview .review-meta{font-size:12px;color:var(--muted);margin-top:3px}
+    #spartaReview .review-actions{display:flex;gap:7px;flex-wrap:wrap}
+    #spartaReview button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}
+    #spartaReview .approve{background:#246b43;color:white}#spartaReview .reject{background:#eee2df;color:#8b2929}#spartaReview .refresh{background:#eee9df;color:#34363a}
+    #spartaReview .review-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap}
+    body.auth-locked>#spartaReview{display:none!important}
+    @media(max-width:760px){#spartaReview .review-card{padding:13px}}
+
+    body.auth-locked>header,body.auth-locked>main,body.auth-locked>.academy,body.auth-locked>footer{display:none!important}
+    #spartaAuth{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at top,#33343a,#17191d 65%);color:#f7f4ec;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+    #spartaAuth .auth-card{width:min(100%,440px);background:#24262c;border:1px solid #51483b;border-top:4px solid #a92e32;border-radius:18px;padding:26px;box-shadow:0 18px 60px #0008}
+    #spartaAuth .auth-crest{width:54px;height:54px;border:2px solid #c5a45b;border-radius:50%;display:grid;place-items:center;color:#c5a45b;font-size:30px;margin-bottom:14px}
+    #spartaAuth h1{font-size:24px;letter-spacing:.1em;margin:0}#spartaAuth .auth-sub{color:#d9c58f;font-size:12px;letter-spacing:.14em;margin:5px 0 22px}
+    #spartaAuth label{display:block;font-size:13px;color:#d8d3c8;margin:13px 0 5px}#spartaAuth input{width:100%;padding:12px;border-radius:9px;border:1px solid #55545a;background:#17191d;color:white;font:inherit;box-sizing:border-box}
+    #spartaAuth .auth-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}#spartaAuth button{border:0;border-radius:9px;padding:11px 15px;background:#a92e32;color:white;font-weight:700;cursor:pointer}#spartaAuth button.alt{background:#3a3c43;color:#f4eee2}
+    #spartaAuth .auth-msg{min-height:40px;margin-top:14px;font-size:13px;color:#e4cf9d;white-space:pre-wrap}#spartaAuth .auth-note{font-size:12px;color:#aaa9a5;line-height:1.5;margin-top:18px}
+    #spartaSession{max-width:1050px;margin:14px auto 0;padding:10px 14px;background:#24262c;color:#f7f4ec;border-left:4px solid #c5a45b;border-radius:9px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;font-size:13px}
+    #spartaSession button{border:0;border-radius:7px;padding:8px 12px;background:#a92e32;color:white;font-weight:700}
+    @media(max-width:520px){#spartaAuth .auth-card{padding:21px}#spartaSession{margin:10px 12px}}
+
+    /* Wymusza respektowanie atrybutu HTML hidden także dla elementów z własnym display:flex/grid. */
+
+    #spartaStudent{max-width:1050px;margin:14px auto 24px;padding:0 16px}
+    #spartaStudent .student-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
+    #spartaStudent .student-task{padding:12px;margin:9px 0;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}
+    #spartaStudent .student-task-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+    #spartaStudent .student-meta{font-size:12px;color:var(--muted);margin-top:5px}
+    #spartaStudent .student-status{display:inline-block;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700;background:#eee9df}
+    #spartaStudent .student-status.pending{background:#fff0c9;color:#74530c}
+    #spartaStudent .student-status.approved{background:#dcefe2;color:#246b43}
+    #spartaStudent .student-status.rejected{background:#f3e1df;color:#8b2929}
+    #spartaStudent .student-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap}
+    @media(max-width:760px){#spartaStudent .student-card{padding:13px}}
+
+    [hidden]{display:none!important}
+  </style>
+</head>
+<body class="auth-locked">
+
+<div id="spartaAuth">
+  <section class="auth-card">
+    <div class="auth-crest">♞</div>
+    <h1>SPARTA 64</h1><div class="auth-sub">AKADEMIA SZACHOWA · GRĘBOCICE</div>
+    <div id="authForm">
+      <label for="authEmail">Adres e-mail</label><input id="authEmail" type="email" autocomplete="username" placeholder="adres@email.pl">
+      <label for="authPassword">Hasło</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Minimum 6 znaków">
+      <div class="auth-actions"><button id="authLogin">Zaloguj się</button><button class="alt" id="authRegister">Utwórz konto zawodnika</button></div>
+    </div>
+    <div class="auth-msg" id="authMessage" role="status" aria-live="polite">Połączono z bazą Akademii SPARTA 64.</div>
+    <div class="auth-note">Logowanie jest obsługiwane przez Supabase. Konto zawodnika otrzymuje rolę nadaną przez bazę danych. Nie wpisuj tutaj hasła do GitHuba ani Supabase.</div>
+  </section>
+</div>
+<div id="spartaSession" hidden><span id="sessionLabel"></span><button id="authLogout">Wyloguj</button></div>
+
+<section id="spartaStudent" hidden>
+  <div class="student-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div><h2 style="margin:0">Moja Akademia · zadania</h2><div class="note">Zadania przypisane do Twoich grup treningowych.</div></div>
+      <button class="action secondary" id="studentRefresh" type="button">Odśwież zadania</button>
+    </div>
+    <div id="studentTaskList" aria-live="polite" style="margin-top:12px"><div class="note">Ładowanie zadań…</div></div>
+    <div id="studentMessage" class="student-message" role="status">Tutaj zobaczysz swoje zadania i zgłoszenia.</div>
+  </div>
+</section>
+
+<div id="spartaReview" hidden>
+  <section class="review-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div><h2 style="margin:0">Panel trenera · zgłoszenia online</h2><div class="note">Zatwierdzanie odbywa się bezpośrednio w Supabase. Punkty XP nalicza baza danych.</div></div>
+      <button class="refresh" id="reviewRefresh">Odśwież zgłoszenia</button>
+    </div>
+    <div id="reviewList" aria-live="polite" class="a09-list"><div class="note">Ładowanie zgłoszeń…</div></div>
+    <div id="reviewMessage" class="review-message" role="status">Panel dostępny dla administratora i trenera.</div>
+  </section>
+</div>
+
+
+<header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
+<main>
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 2.1</span></div>
+    <div class="settings">
+      <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
+      <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
+      <div style="grid-column:1/-1"><label for="strength">Siła Stockfisha</label><select id="strength"><option value="0">1 — początkujący</option><option value="4">2 — łatwy</option><option value="8" selected>3 — średni</option><option value="12">4 — mocny</option><option value="16">5 — bardzo mocny</option></select></div>
+    </div>
+    <div id="board" class="board" aria-label="Szachownica"></div>
+    <div class="toolbar">
+      <button class="action" id="reset">Nowa partia</button>
+      <button class="action secondary" id="undo">Cofnij ruch</button>
+      <button class="action secondary" id="flip">Obróć planszę</button>
+      <button class="action secondary" id="exportPgn">Pobierz PGN</button>
+      <button class="action secondary" id="importPgn">Wczytaj PGN</button>
+      <button class="action" id="analyzeGame">Analizuj partię</button>
+      <input id="pgnFile" type="file" accept=".pgn,text/plain" hidden>
+    </div>
+    <div id="engineState">Silnik uruchomi się dopiero po wybraniu „Graj z komputerem”.</div>
+  </section>
+  <aside class="panel">
+    <h2>Przebieg partii</h2>
+    <div id="status" role="status" aria-live="polite">Ładowanie szachownicy…</div>
+    <h3>Ruchy</h3><div id="moves" class="move-list">Partia jeszcze się nie rozpoczęła.</div>
+    <h3>Raport trenera · analiza partii</h3>
+    <div id="analysisState" class="note">Po rozegraniu lub wczytaniu partii kliknij „Analizuj partię”. Analiza jest orientacyjna i zależy od głębokości obliczeń.</div>
+    <div id="analysisSummary" class="note" style="margin:8px 0;padding:10px;background:#f8f5ee;border-radius:9px">Po analizie pojawi się podsumowanie partii i najważniejsze momenty.</div>
+    <div id="analysisResults" class="move-list" style="height:260px;margin-top:8px">Brak analizy.</div>
+    <h3>Trener interaktywny · ćwicz swoje błędy</h3>
+    <div class="trainer-box">
+      <p class="note" style="margin-top:0">Po analizie partii wybierz zadanie i spróbuj samodzielnie znaleźć lepszy ruch. Trener korzysta z pozycji i najlepszego ruchu wskazanego przez Stockfisha.</p>
+      <div id="trainerProgress" class="pill">Brak zadań — najpierw przeanalizuj partię</div>
+      <div id="trainerBoard" aria-label="Szachownica treningowa"></div>
+      <div id="trainerMessage" role="status" aria-live="polite">Tutaj pojawi się zadanie treningowe.</div>
+      <div class="toolbar" style="margin-top:8px">
+        <button class="action" id="startTraining" disabled>Rozpocznij trening</button>
+        <button class="action secondary" id="trainerHint" disabled>Podpowiedź</button>
+        <button class="action secondary" id="nextTask" disabled>Następne zadanie</button>
+      </div>
+      <p class="note" id="trainerPoints">Punkty treningowe: 0</p>
+    </div>
+    <h3>Partie PGN</h3>
+    <p class="note">PGN to standardowy zapis partii szachowej. Możesz pobrać aktualną partię do pliku albo wczytać wcześniej zapisaną partię PGN.</p>
+    <h3>Jak testować?</h3>
+    <p class="note">Dotknij figury, a następnie pola docelowego. Złote kropki pokazują legalne ruchy. Promocja pionka w tym prototypie odbywa się automatycznie na hetmana.</p>
+    <p class="note"><strong>Gra z komputerem:</strong> wybierz tryb, kolor i kliknij „Nowa partia”. Pierwsze uruchomienie pobierze silnik Stockfish (około 1,7 MB).</p>
+    <p class="note">To prototyp techniczny. Nie zapisuje jeszcze partii na serwerze i nie obsługuje kont zawodników.</p>
+  </aside>
+</main>
+<section class="academy">
+  <div class="academy-grid">
+    <div class="academy-card">
+      <h2>Profil zawodnika</h2>
+      <div class="profile-row"><label for="playerName">Nazwa zawodnika / pseudonim<input id="playerName" maxlength="24" placeholder="Np. Szachowy Wojownik"></label><button class="action" id="saveProfile">Zapisz profil</button></div>
+      <div class="stat-grid"><div class="stat"><strong id="academyXp">0</strong><span class="note">Punkty XP</span></div><div class="stat"><strong id="academyLevel">1</strong><span class="note">Poziom</span></div><div class="stat"><strong id="academySolved">0</strong><span class="note">Rozwiązane</span></div></div>
+      <p class="note" id="academyLevelName">Początkujący</p><div class="levelbar"><span id="academyLevelBar"></span></div>
+      <h3>Odznaki</h3><div id="academyBadges" class="badge-list"></div>
+      <p class="note">Profil demonstracyjny zapisuje się tylko w pamięci tej przeglądarki na tym urządzeniu. Nie jest jeszcze kontem klubowym.</p>
+    </div>
+    <div class="academy-card">
+      <h2>Biblioteka zadań</h2>
+      <p class="note">Zacznij od krótkich zadań taktycznych. Punkty za rozwiązanie trafiają do Twojego profilu.</p>
+      <div class="library-list">
+        <div class="library-item"><div><div class="badge-title">♞ Zbij atakującego skoczka</div><p>Poziom 1 · Obrona · Znajdź ruch, który usuwa szacha.</p></div><button class="action" data-puzzle="knight">Rozwiąż</button></div>
+        <div class="library-item"><div><div class="badge-title">♛ Zdobądź hetmana</div><p>Poziom 1 · Taktyka · Wykorzystaj możliwość bicia hetmana.</p></div><button class="action" data-puzzle="queen">Rozwiąż</button></div>
+      </div>
+      <p class="note" id="libraryMessage" style="margin-top:12px">Wybierz zadanie, aby uruchomić je w trenerze interaktywnym.</p>
+    </div>
+  </div>
+</section>
+<section class="coach-section" aria-labelledby="coachTitle">
+  <div class="coach-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 id="coachTitle">Panel trenera</h2><span class="pill">PROTOTYP 1.0</span></div>
+    <p class="note">Demonstracyjny dziennik pracy trenera. Dane są zapisywane wyłącznie w pamięci tej przeglądarki — nie są wysyłane do klubu ani synchronizowane między urządzeniami. Używaj wyłącznie pseudonimów i danych testowych.</p>
+    <div class="coach-stat"><div class="stat"><strong id="coachPlayersCount">0</strong><span class="note">Zawodnicy</span></div><div class="stat"><strong id="coachAssignmentsCount">0</strong><span class="note">Przydzielone zadania</span></div><div class="stat"><strong id="coachCompletedCount">0</strong><span class="note">Ukończone</span></div></div>
+    <div class="coach-grid"><div>
+      <h3>Lista zawodników</h3><div class="coach-controls">
+        <label>Szukaj zawodnika<input id="coachSearch" type="search" placeholder="Np. Zawodnik 01"></label>
+        <label>Filtr poziomu<select id="coachFilter"><option value="all">Wszyscy</option><option>Początkujący</option><option>Podstawowy</option><option>Średni</option><option>Zaawansowany</option></select></label>
+      </div>
+      <div class="roster-wrap"><table class="roster"><thead><tr><th>Pseudonim</th><th>Poziom</th><th>XP</th><th>Zadania</th><th></th></tr></thead><tbody id="coachRoster"></tbody></table></div>
+      <div class="coach-controls"><label>Dodaj pseudonim<input id="newAthleteName" maxlength="32" placeholder="Np. Zawodnik 09"></label><label>Poziom<select id="newAthleteLevel"><option>Początkujący</option><option>Podstawowy</option><option>Średni</option><option>Zaawansowany</option></select></label></div>
+      <button class="action" id="addAthlete">Dodaj zawodnika testowego</button>
+    </div><div>
+      <h3>Przydziel zadanie</h3><p class="note" id="selectedAthleteLabel">Wybierz zawodnika z listy.</p>
+      <label class="note" for="coachTaskSelect">Zadanie treningowe</label>
+      <select id="coachTaskSelect" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:white;font:inherit;margin:4px 0 10px"><option value="mate">Mat w jednym — ćwiczenie taktyczne</option><option value="fork">Widełki — atak na dwie figury</option><option value="defense">Bezpieczna obrona — znajdź najlepszą odpowiedź</option><option value="review">Analiza własnej partii — przejrzyj błędy</option></select>
+      <button class="action" id="assignTask">Przydziel zadanie</button><div class="assignment-list" id="coachAssignments"><div class="note">Wybierz zawodnika, aby zobaczyć jego zadania.</div></div>
+      <div class="coach-controls"><label>XP za ukończenie<input id="coachXpReward" type="number" min="1" max="50" value="5"></label><div style="display:flex;align-items:end"><button class="action secondary" id="completeTask" disabled>Oznacz jako ukończone</button></div></div>
+      <div id="coachMessage" class="coach-message" role="status" aria-live="polite">Panel działa w trybie demonstracyjnym.</div>
+    </div></div>
+  </div>
+</section>
+
+<section class="academy09" aria-labelledby="academy09Title">
+  <div class="academy09-card">
+    <div class="a09-item-head"><h2 id="academy09Title">Struktura Akademii · 1.0</h2><span class="pill">KOPIA ZAPASOWA</span></div>
+    <p class="note">Grupy, trenerzy, zadania grupowe i kalendarz. Dane są przechowywane lokalnie w tej przeglądarce. Wersja 1.0 pozwala wykonać kopię zapasową i odtworzyć ją na innym urządzeniu.</p>
+    <div class="a09-item" style="margin-top:14px">
+      <h3>Bezpieczeństwo danych Akademii</h3>
+      <p class="note">Eksport obejmuje profil, listę zawodników i ich zadania, grupy, trenerów, przypisania, zadania grupowe oraz kalendarz.</p>
+      <div class="a09-form">
+        <button class="action" id="a10Export" type="button">Pobierz kopię zapasową JSON</button>
+        <label class="wide">Odtwórz dane z pliku JSON<input id="a10ImportFile" type="file" accept=".json,application/json"></label>
+      </div>
+      <div class="a09-message" id="a10Message" role="status" aria-live="polite">Zalecamy pobierać kopię po każdej większej zmianie w Akademii.</div>
+    </div>
+    <div class="coach-stat">
+      <div class="stat"><strong id="a09GroupCount">0</strong><span class="note">Grupy</span></div>
+      <div class="stat"><strong id="a09CoachCount">0</strong><span class="note">Trenerzy</span></div>
+      <div class="stat"><strong id="a09SessionCount">0</strong><span class="note">Treningi w kalendarzu</span></div>
+    </div>
+  </div>
+  <div class="a09-grid">
+    <div class="academy09-card">
+      <h2>Grupy treningowe</h2>
+      <div class="a09-form">
+        <label>Nazwa grupy<input id="a09GroupName" maxlength="40" placeholder="Np. Młode talenty"></label>
+        <label>Poziom<select id="a09GroupLevel"><option>Początkujący</option><option>Podstawowy</option><option>Średni</option><option>Zaawansowany</option></select></label>
+        <label class="wide">Trener prowadzący<select id="a09GroupCoach"></select></label>
+      </div>
+      <button class="action" id="a09AddGroup">Utwórz grupę</button>
+      <div class="a09-list" id="a09Groups"></div>
+      <h3>Przypisz wybranego zawodnika do grupy</h3>
+      <div class="a09-form">
+        <label class="wide">Grupa<select id="a09MembershipGroup"></select></label>
+      </div>
+      <button class="action secondary" id="a09AssignMember">Przypisz z panelu trenera</button>
+    </div>
+    <div class="academy09-card">
+      <h2>Zespół trenerski</h2>
+      <div class="a09-form">
+        <label class="wide">Imię lub pseudonim trenera<input id="a09CoachName" maxlength="50" placeholder="Np. Trener A"></label>
+      </div>
+      <button class="action" id="a09AddCoach">Dodaj trenera testowego</button>
+      <div class="a09-list" id="a09Coaches"></div>
+      <div class="a09-message" id="a09Message" role="status">Wybierz zawodnika w panelu trenera 0.8, aby przypisać go do grupy.</div>
+    </div>
+  </div>
+  <div class="a09-grid">
+    <div class="academy09-card">
+      <h2>Zadania grupowe</h2>
+      <div class="a09-form">
+        <label>Grupa<select id="a09TaskGroup"></select></label>
+        <label>Zadanie<select id="a09TaskType"><option value="mate">Mat w jednym</option><option value="fork">Widełki</option><option value="defense">Bezpieczna obrona</option><option value="review">Analiza własnej partii</option></select></label>
+        <label>Termin wykonania<input id="a09TaskDue" type="date"></label>
+        <label>XP za ukończenie<input id="a09TaskXp" type="number" min="1" max="50" value="5"></label>
+      </div>
+      <button class="action" id="a09AssignGroupTask">Przydziel zadanie grupie</button>
+      <div class="a09-list" id="a09GroupTasks"></div>
+    </div>
+    <div class="academy09-card">
+      <h2>Kalendarz treningów</h2>
+      <div class="a09-form">
+        <label>Data i godzina<input id="a09SessionDate" type="datetime-local"></label>
+        <label>Grupa<select id="a09SessionGroup"></select></label>
+        <label class="wide">Temat zajęć<input id="a09SessionTopic" maxlength="90" placeholder="Np. Matowanie wieżą i hetmanem"></label>
+        <label class="wide">Trener<select id="a09SessionCoach"></select></label>
+      </div>
+      <button class="action" id="a09AddSession">Dodaj trening do kalendarza</button>
+      <div class="a09-list" id="a09Sessions"></div>
+    </div>
+  </div>
+  <div class="academy09-card">
+    <h2>Ranking Akademii</h2>
+    <p class="note">Ranking demonstracyjny na podstawie XP zapisanych w panelu trenera. Nie pobiera wyników z urządzeń zawodników.</p>
+    <div class="roster-wrap"><table class="a09-rank"><thead><tr><th>#</th><th>Zawodnik</th><th>Grupa</th><th>Poziom</th><th>XP</th><th>Ukończone zadania</th></tr></thead><tbody id="a09Ranking"></tbody></table></div>
+  </div>
+</section>
+
+<footer>SPARTA 64 · Prototyp 2.1 · Panel trenera online · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<script>
+(() => {
+  const status=document.getElementById("status");
+  const engineState=document.getElementById("engineState");
+  if(typeof Chess==="undefined"){status.textContent="Nie udało się pobrać biblioteki szachowej. Sprawdź internet i odśwież stronę.";return;}
+  const game=new Chess(),board=document.getElementById("board"),moves=document.getElementById("moves");
+  const analysisState=document.getElementById("analysisState"),analysisResults=document.getElementById("analysisResults"),analysisSummary=document.getElementById("analysisSummary");
+  const opponent=document.getElementById("opponent"),playerColor=document.getElementById("playerColor"),strength=document.getElementById("strength");
+  let selected=null,targets=[],flipped=false,lastMove=null,engine=null,engineReady=false,engineLoading=false,thinking=false,playerSide="w",pendingStart=false;
+  const symbols={wp:"♙",wn:"♘",wb:"♗",wr:"♖",wq:"♕",wk:"♔",bp:"♟",bn:"♞",bb:"♝",br:"♜",bq:"♛",bk:"♚"};
+  const files=["a","b","c","d","e","f","g","h"];
+  function orderedSquares(){const out=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const file=flipped?7-c:c,rank=flipped?r+1:8-r;out.push(files[file]+rank);}return out;}
+  function isComputerTurn(){return opponent.value==="computer"&&game.turn()!==playerSide;}
+  function render(){
+    board.innerHTML="";
+    orderedSquares().forEach((sq,i)=>{
+      const file=files.indexOf(sq[0]),rank=Number(sq[1]),el=document.createElement("button");
+      el.type="button";el.className="sq "+(((file+rank)%2===0)?"light":"dark");
+      if(sq===selected)el.classList.add("selected");if(targets.includes(sq))el.classList.add("target");if(lastMove&&(sq===lastMove.from||sq===lastMove.to))el.classList.add("last");
+      el.setAttribute("aria-label",sq);const piece=game.get(sq);if(piece)el.textContent=symbols[piece.color+piece.type];
+      if(i%8===0){const c=document.createElement("span");c.className="coords";c.textContent=sq[1];el.append(c);}
+      if(i>=56){const c=document.createElement("span");c.className="coords";c.style.left="auto";c.style.right="4px";c.style.top="auto";c.style.bottom="2px";c.textContent=sq[0];el.append(c);}
+      el.addEventListener("click",()=>onSquare(sq));board.append(el);
+    });
+    updateInfo();
+  }
+  function updateInfo(){
+    let msg=game.turn()==="w"?"Ruch białych":"Ruch czarnych";
+    if(game.in_checkmate())msg="Mat! "+(game.turn()==="w"?"Czarne":"Białe")+" wygrywają.";
+    else if(game.in_draw())msg="Remis.";
+    else if(game.in_check())msg+=" — szach!";
+    else if(thinking)msg="Stockfish myśli…";
+    else if(opponent.value==="computer")msg=game.turn()===playerSide?"Twój ruch.": "Ruch komputera.";
+    status.textContent=msg;
+    const history=game.history();if(!history.length){moves.textContent="Partia jeszcze się nie rozpoczęła.";return;}
+    const lines=[];for(let i=0;i<history.length;i+=2)lines.push(`${Math.floor(i/2)+1}. ${history[i]}${history[i+1]?"  "+history[i+1]:""}`);
+    moves.textContent=lines.join("\n");moves.scrollTop=moves.scrollHeight;
+  }
+  function onSquare(sq){
+    if(thinking||game.game_over()||isComputerTurn())return;
+    const piece=game.get(sq);
+    if(selected&&targets.includes(sq)){
+      const move=game.move({from:selected,to:sq,promotion:"q"});
+      if(move){lastMove={from:move.from,to:move.to};selected=null;targets=[];render();if(!game.game_over()&&isComputerTurn())computerMove();return;}
+    }
+    if(piece&&piece.color===game.turn()){selected=sq;targets=game.moves({square:sq,verbose:true}).map(m=>m.to);}
+    else{selected=null;targets=[];}
+    render();
+  }
+  function loadEngine(){
+    if(engineReady)return Promise.resolve();
+    if(engineLoading)return new Promise(resolve=>{const timer=setInterval(()=>{if(engineReady||!engineLoading){clearInterval(timer);resolve();}},100);});
+    engineLoading=true;engineState.textContent="Uruchamianie Stockfisha…";
+    return new Promise((resolve,reject)=>{
+      try{
+        engine=new Worker("../stockfish/stockfish-19-lite-single.js");
+        const timeout=setTimeout(()=>{engineLoading=false;engineState.textContent="Nie udało się uruchomić Stockfisha. Sprawdź, czy w katalogu stockfish są pliki JS i WASM.";reject(new Error("timeout"));},20000);
+        engine.onmessage=e=>{
+          const line=String(e.data||"");
+          if(line==="uciok")engine.postMessage("isready");
+          if(line==="readyok"){clearTimeout(timeout);engineReady=true;engineLoading=false;engineState.textContent="Stockfish 19 gotowy.";resolve();}
+          if(line.startsWith("bestmove ")){
+            const uci=line.split(/\s+/)[1];
+            if(uci&&uci!=="(none)"){const m=game.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci.length>4?uci[4]:"q"});if(m)lastMove={from:m.from,to:m.to};}
+            thinking=false;render();
+            if(game.game_over())finishStatus();else status.textContent="Twój ruch.";
+          }
+        };
+        engine.onerror=()=>{clearTimeout(timeout);engineLoading=false;engineState.textContent="Błąd ładowania Stockfisha. Sprawdź obecność obu plików silnika.";reject(new Error("worker"));};
+        engine.postMessage("uci");
+      }catch(err){engineLoading=false;reject(err);}
+    });
+  }
+  async function computerMove(){
+    if(opponent.value!=="computer"||game.game_over()||game.turn()===playerSide)return;
+    try{await loadEngine();if(game.game_over()||game.turn()===playerSide)return;
+      thinking=true;render();
+      engine.postMessage("setoption name Skill Level value "+Number(strength.value));
+      engine.postMessage("position fen "+game.fen());
+      engine.postMessage("go depth "+(8+Number(strength.value)));
+    }catch(err){status.textContent="Nie udało się uruchomić silnika. Sprawdź pliki Stockfish w repozytorium.";thinking=false;render();}
+  }
+  function finishStatus(){if(game.in_checkmate())status.textContent="Mat! "+(game.turn()===playerSide?"Komputer wygrywa.":"Wygrałeś!");else if(game.in_draw())status.textContent="Remis.";else status.textContent="Koniec partii.";}
+  async function newGame(){
+    if(thinking&&engine)engine.postMessage("stop");
+    thinking=false;game.reset();selected=null;targets=[];lastMove=null;playerSide=playerColor.value;render();
+    if(opponent.value==="computer"){
+      try{await loadEngine();if(playerSide==="b")computerMove();else status.textContent="Twój ruch — grasz białymi.";}
+      catch(e){status.textContent="Silnik nie jest jeszcze gotowy. Sprawdź pliki w katalogu prototype/stockfish/.";}
+    }else status.textContent="Partia dla dwóch graczy. Ruch białych.";
+  }
+  document.getElementById("reset").addEventListener("click",newGame);
+  document.getElementById("undo").addEventListener("click",()=>{
+    if(thinking){if(engine)engine.postMessage("stop");thinking=false;}
+    if(game.history().length){game.undo();if(opponent.value==="computer"&&game.history().length&&game.turn()!==playerSide)game.undo();}
+    selected=null;targets=[];lastMove=null;render();
+  });
+  document.getElementById("flip").addEventListener("click",()=>{flipped=!flipped;render();});
+  document.getElementById("exportPgn").addEventListener("click",()=>{
+    if(!game.history().length){status.textContent="Nie ma jeszcze ruchów do zapisania.";return;}
+    const pgn=game.pgn({max_width:80});
+    const blob=new Blob([pgn+"\n"],{type:"application/x-chess-pgn;charset=utf-8"});
+    const url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download="SPARTA64-partia-"+new Date().toISOString().slice(0,10)+".pgn";
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    status.textContent="Partia została pobrana w formacie PGN.";
+  });
+  const pgnInput=document.getElementById("pgnFile");
+  document.getElementById("importPgn").addEventListener("click",()=>pgnInput.click());
+  pgnInput.addEventListener("change",async()=>{
+    const file=pgnInput.files&&pgnInput.files[0];if(!file)return;
+    try{
+      const text=await file.text(),loaded=new Chess();
+      const ok=loaded.load_pgn(text);
+      if(!ok)throw new Error("Nieprawidłowy PGN");
+      if(thinking&&engine)engine.postMessage("stop");
+      thinking=false;
+      // Odtwarzamy zapisane ruchy w bieżącej partii, aby zachować historię do eksportu.
+      const sans=loaded.history();
+      game.reset();
+      for(const san of sans){if(!game.move(san))throw new Error("Nie udało się odtworzyć ruchów");}
+      selected=null;targets=[];lastMove=null;render();
+      status.textContent="Wczytano partię PGN. Możesz ją przejrzeć lub kontynuować.";
+    }catch(err){status.textContent="Nie udało się wczytać PGN. Sprawdź, czy plik zawiera poprawny zapis partii."; }
+    pgnInput.value="";
+  });
+  function scoreFromInfo(line){
+    const m=line.match(/\bscore\s+(cp|mate)\s+(-?\d+)/);
+    if(!m)return null;
+    return m[1]==="mate" ? (Number(m[2])>0?10000:-10000) : Number(m[2]);
+  }
+  function analyzeFen(worker,fen,depth){
+    return new Promise((resolve,reject)=>{
+      let latest=null,done=false;
+      const timer=setTimeout(()=>{if(!done){done=true;reject(new Error("Przekroczono czas analizy"));}},45000);
+      const previous=worker.onmessage;
+      worker.onmessage=e=>{
+        const line=String(e.data||"");
+        if(line.startsWith("info ")){
+          const d=line.match(/\bdepth\s+(\d+)/),score=scoreFromInfo(line);
+          if(score!==null&&d&&Number(d[1])>=depth)latest=score;
+        }
+        if(line.startsWith("bestmove ")){
+          if(done)return;done=true;clearTimeout(timer);worker.onmessage=previous;
+          resolve({score:latest,bestmove:line.split(/\s+/)[1]||null});
+        }
+      };
+      worker.postMessage("position fen "+fen);
+      worker.postMessage("go depth "+depth);
+    });
+  }
+  function classifyLoss(loss){
+    if(loss<=10)return "Najlepszy ruch";
+    if(loss<=30)return "Niedokładność";
+    if(loss<=80)return "Błąd";
+    if(loss<=200)return "Poważny błąd";
+    return "Duży błąd";
+  }
+  function coachingTip(label,bestSan){
+    if(label==="Najlepszy ruch")return "Dobra robota — ten ruch utrzymuje jakość pozycji.";
+    if(label==="Niedokładność")return `Była dokładniejsza możliwość: ${bestSan}. Porównaj oba ruchy i sprawdź, co poprawia ten wariant.`;
+    if(label==="Błąd")return `Silnik preferuje ${bestSan}. Przed ruchem sprawdź, czy nie pomijasz groźby przeciwnika.`;
+    if(label==="Poważny błąd")return `Znacznie lepsze było ${bestSan}. Zatrzymaj się i sprawdź szachy, bicia oraz bezpośrednie groźby.`;
+    return `To bardzo kosztowny ruch. Silnik wskazuje ${bestSan}. Poszukaj, jak przeciwnik może wykorzystać osłabienie lub zdobyć materiał.`;
+  }
+  async function analyzeWholeGame(){
+    const sans=game.history();
+    if(!sans.length){analysisState.textContent="Najpierw rozegraj partię lub wczytaj plik PGN.";return;}
+    const button=document.getElementById("analyzeGame");button.disabled=true;
+    analysisResults.textContent="Przygotowanie analizy…";analysisSummary.textContent="Liczenie wyników…";
+    analysisState.textContent="Uruchamiam osobny silnik analityczny. Proszę nie zamykać strony.";
+    let worker=null;const depth=10,rows=[],details=[];
+    try{
+      worker=new Worker("../stockfish/stockfish-19-lite-single.js");
+      await new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject(new Error("Stockfish nie odpowiada")),20000);
+        worker.onmessage=e=>{const line=String(e.data||"");if(line==="uciok")worker.postMessage("isready");if(line==="readyok"){clearTimeout(timer);resolve();}};
+        worker.onerror=()=>{clearTimeout(timer);reject(new Error("Nie udało się uruchomić Stockfisha"));};
+        worker.postMessage("uci");
+      });
+      const replay=new Chess();
+      for(let i=0;i<sans.length;i++){
+        const before=replay.fen(),best=await analyzeFen(worker,before,depth);
+        const actual=replay.move(sans[i]);if(!actual)throw new Error("Nie udało się odtworzyć ruchu "+(i+1));
+        const after=await analyzeFen(worker,replay.fen(),depth);
+        const beforeScore=best.score===null?0:best.score;
+        const afterScore=after.score===null?0:-after.score;
+        const loss=Math.max(0,beforeScore-afterScore);
+        const label=classifyLoss(loss);
+        let bestSan="—";
+        if(best.bestmove&&best.bestmove!=="(none)"){
+          const copy=new Chess(before),bm=best.bestmove;
+          const made=copy.move({from:bm.slice(0,2),to:bm.slice(2,4),promotion:bm.length>4?bm[4]:"q"});
+          if(made)bestSan=made.san;
+        }
+        const moveLabel=`${Math.floor(i/2)+1}${i%2===0?".":"..."} ${actual.san}`;
+        const tip=coachingTip(label,bestSan);
+        rows.push(`${moveLabel} — ${label} (strata ~${Math.round(loss)} cp; najlepszy: ${bestSan})\n   ${tip}`);
+        details.push({move:moveLabel,label,loss:Math.round(loss),bestSan,bestUci:best.bestmove,fen:before,tip});
+        analysisState.textContent=`Analiza w toku: ${i+1} z ${sans.length} półruchów (głębokość ${depth}).`;
+        analysisResults.textContent=rows.join("\n\n");
+      }
+      const counts={"Najlepszy ruch":0,"Niedokładność":0,"Błąd":0,"Poważny błąd":0,"Duży błąd":0};
+      details.forEach(d=>counts[d.label]++);
+      const critical=[...details].sort((a,b)=>b.loss-a.loss).filter(d=>d.loss>10).slice(0,3);
+      const countLine=Object.entries(counts).filter(([,v])=>v>0).map(([k,v])=>`${k}: ${v}`).join(" · ")||"Brak danych";
+      const keyLine=critical.length?critical.map((d,i)=>`${i+1}. ${d.move} — ${d.label} (~${d.loss} cp). Lepszy ruch: ${d.bestSan}.`).join("\n"):"Nie wykryto dużych strat w analizowanych ruchach.";
+      analysisSummary.textContent=`PODSUMOWANIE (${details.length} półruchów)\n${countLine}\n\nNAJWAŻNIEJSZE MOMENTY\n${keyLine}\n\nWskazówka treningowa: przed każdym ruchem sprawdzaj szachy, możliwe bicia i groźby przeciwnika.`;
+      analysisState.textContent="Analiza zakończona. Oceny są przybliżone (głębokość 10) i służą treningowi, nie są oficjalną oceną turniejową.";
+      trainerTasks=details.filter(d=>d.loss>10&&d.bestUci&&d.bestUci!=="(none)").sort((a,b)=>b.loss-a.loss);
+      trainerIndex=0;trainerGame=null;trainerSelected=null;trainerTargets=[];trainerSolved=false;hintLevel=0;
+      startTraining.disabled=trainerTasks.length===0;trainerHint.disabled=true;nextTask.disabled=true;
+      trainerProgress.textContent=trainerTasks.length?`Gotowe zadania: ${trainerTasks.length}`:"Brak błędów do przećwiczenia — świetna partia!";
+      trainerMessage.textContent=trainerTasks.length?"Analiza gotowa. Kliknij „Rozpocznij trening”, aby poprawić swoje błędy.":"Nie znaleziono ruchów z istotną stratą punktową.";
+      renderTrainer();
+    }catch(err){analysisState.textContent="Analiza przerwana: "+err.message+". Spróbuj ponownie przy stabilnym połączeniu.";}
+    finally{if(worker)worker.terminate();button.disabled=false;}
+  }
+  // Interaktywny trener: osobna plansza, nie zmienia przebiegu ani PGN głównej partii.
+  const trainerBoard=document.getElementById("trainerBoard"),trainerMessage=document.getElementById("trainerMessage");
+  const trainerProgress=document.getElementById("trainerProgress"),trainerPoints=document.getElementById("trainerPoints");
+  const startTraining=document.getElementById("startTraining"),trainerHint=document.getElementById("trainerHint"),nextTask=document.getElementById("nextTask");
+  let trainerTasks=[],trainerIndex=0,trainerGame=null,trainerSelected=null,trainerTargets=[],trainerSolved=false,trainerScore=0,hintLevel=0;
+  function currentTask(){return trainerTasks[trainerIndex]||null;}
+  function renderTrainer(){
+    trainerBoard.innerHTML="";
+    if(!trainerGame){trainerProgress.textContent=trainerTasks.length?`Zadań: ${trainerTasks.length}`:"Brak zadań — najpierw przeanalizuj partię";return;}
+    for(let rank=8;rank>=1;rank--)for(let file=0;file<8;file++){
+      const sq=files[file]+rank,el=document.createElement("button"),piece=trainerGame.get(sq);
+      el.type="button";el.className="tsq "+(((file+rank)%2===0)?"light":"dark");
+      if(sq===trainerSelected)el.classList.add("selected");if(trainerTargets.includes(sq))el.classList.add("target");
+      const task=currentTask();if(task&&hintLevel>0&&task.bestUci&&((hintLevel===1&&sq===task.bestUci.slice(0,2))||(hintLevel>=2&&(sq===task.bestUci.slice(0,2)||sq===task.bestUci.slice(2,4)))))el.classList.add("hint");
+      if(piece)el.textContent=symbols[piece.color+piece.type];el.setAttribute("aria-label",sq);el.addEventListener("click",()=>trainerSquare(sq));trainerBoard.append(el);
+    }
+    const t=currentTask();trainerProgress.textContent=t?`Zadanie ${trainerIndex+1} z ${trainerTasks.length} · ${t.move} · ${t.label}`:"Koniec zadań";
+  }
+  function trainerSquare(sq){
+    if(!trainerGame||trainerSolved||!currentTask())return;
+    const piece=trainerGame.get(sq);
+    if(trainerSelected&&trainerTargets.includes(sq)){
+      const made=trainerGame.move({from:trainerSelected,to:sq,promotion:"q"});trainerSelected=null;trainerTargets=[];
+      if(made){
+        const t=currentTask(),uci=made.from+made.to+(made.promotion||"");
+        if(uci===t.bestUci){trainerSolved=true;const earned=hintLevel===0?3:hintLevel===1?2:1;trainerScore+=earned;awardAcademyPoints(earned);trainerMessage.textContent=`Świetnie! ${made.san} to prawidłowe rozwiązanie. Zdobywasz ${earned} pkt. ${t.tip}`;trainerPoints.textContent=`Punkty treningowe w tej sesji: ${trainerScore}`;nextTask.disabled=false;trainerHint.disabled=true;}
+        else{trainerGame.undo();trainerMessage.textContent=`To legalny ruch, ale nie jest najlepszym rozwiązaniem. Spróbuj ponownie. ${t.tip}`;}
+      }
+      renderTrainer();return;
+    }
+    if(piece&&piece.color===trainerGame.turn()){trainerSelected=sq;trainerTargets=trainerGame.moves({square:sq,verbose:true}).map(m=>m.to);}else{trainerSelected=null;trainerTargets=[];}
+    renderTrainer();
+  }
+  function beginTraining(){
+    if(!trainerTasks.length)return;trainerIndex=0;trainerScore=0;trainerPoints.textContent="Punkty treningowe: 0";loadTrainingTask();
+  }
+  function loadTrainingTask(){
+    const t=currentTask();if(!t){trainerGame=null;renderTrainer();trainerMessage.textContent=`Trening ukończony! Zdobyte punkty: ${trainerScore}. Brawo!`;startTraining.disabled=false;trainerHint.disabled=true;nextTask.disabled=true;return;}
+    trainerGame=new Chess();if(!trainerGame.load(t.fen)){trainerMessage.textContent="Nie udało się odtworzyć pozycji treningowej.";return;}
+    trainerSelected=null;trainerTargets=[];trainerSolved=false;hintLevel=0;trainerHint.disabled=false;nextTask.disabled=true;
+    const side=trainerGame.turn()==="w"?"białych":"czarnych";
+    trainerMessage.textContent=`Twoja kolej: znajdź lepszy ruch dla ${side}. W partii zagrano ${t.move}. Spróbuj poprawić ten ruch.`;
+    renderTrainer();
+  }
+  startTraining.addEventListener("click",beginTraining);
+  trainerHint.addEventListener("click",()=>{
+    if(!currentTask()||trainerSolved)return;hintLevel=Math.min(2,hintLevel+1);
+    const t=currentTask();
+    trainerMessage.textContent=hintLevel===1?`Podpowiedź: właściwa figura stoi na polu ${t.bestUci.slice(0,2)}.`:`Podpowiedź: ruch to ${t.bestSan}. Zaznaczone są pola ruchu.`;
+    renderTrainer();
+  });
+  nextTask.addEventListener("click",()=>{trainerIndex++;loadTrainingTask();});
+
+  // Profil demonstracyjny i postęp zapisywane lokalnie w tej przeglądarce.
+  const academyKey="sparta64_academy_profile_v07";
+  const academyDefaults={name:"Zawodnik Sparty",xp:0,solved:0};
+  let academyData=academyDefaults;
+  try{academyData={...academyDefaults,...JSON.parse(localStorage.getItem(academyKey)||"{}")} }catch(e){}
+  const badgeDefinitions=[
+    {id:"first",name:"Pierwszy krok",desc:"Rozwiąż pierwsze zadanie.",test:d=>d.solved>=1},
+    {id:"five",name:"Wytrwały wojownik",desc:"Rozwiąż 5 zadań.",test:d=>d.solved>=5},
+    {id:"xp25",name:"Złoty pion",desc:"Zdobądź 25 punktów XP.",test:d=>d.xp>=25},
+    {id:"xp100",name:"Spartański talent",desc:"Zdobądź 100 punktów XP.",test:d=>d.xp>=100}
+  ];
+  function saveAcademy(){try{localStorage.setItem(academyKey,JSON.stringify(academyData));}catch(e){}}
+  function renderAcademy(){
+    document.getElementById("playerName").value=academyData.name;
+    document.getElementById("academyXp").textContent=academyData.xp;
+    document.getElementById("academySolved").textContent=academyData.solved;
+    const level=Math.floor(academyData.xp/30)+1,within=academyData.xp%30;
+    const names=["Początkujący","Uczeń Sparty","Taktyk","Strateg","Mistrz Sparty"];
+    document.getElementById("academyLevel").textContent=level;
+    document.getElementById("academyLevelName").textContent=`${names[Math.min(level-1,names.length-1)]} · ${within}/30 XP do kolejnego poziomu`;
+    document.getElementById("academyLevelBar").style.width=(within/30*100)+"%";
+    document.getElementById("academyBadges").innerHTML=badgeDefinitions.map(b=>`<div class="badge-item ${b.test(academyData)?"":"locked"}"><div class="badge-title">${b.test(academyData)?"🏅":"🔒"} ${b.name}</div><div class="note">${b.desc}</div></div>`).join("");
+  }
+  function awardAcademyPoints(points){academyData.xp+=points;academyData.solved+=1;saveAcademy();renderAcademy();}
+  document.getElementById("saveProfile").addEventListener("click",()=>{const value=document.getElementById("playerName").value.trim();academyData.name=value||"Zawodnik Sparty";saveAcademy();renderAcademy();document.getElementById("libraryMessage").textContent="Profil zapisany na tym urządzeniu.";});
+  const academyPuzzles={
+    knight:{fen:"4k3/8/8/8/8/5n2/4Q3/4K3 w - - 0 1",bestUci:"e2f3",bestSan:"Qxf3",move:"Zadanie: usuń szacha",label:"Zadanie taktyczne",tip:"Skoczek szachuje króla. Hetman może go zbić po przekątnej."},
+    queen:{fen:"7k/6pp/8/8/8/8/5q2/4K2R w - - 0 1",bestUci:"e1f2",bestSan:"Kxf2",move:"Zadanie: zdobądź hetmana",label:"Zadanie taktyczne",tip:"Król może zbić hetmana, jeśli pole nie jest bronione. Sprawdź bezpieczeństwo pola f2."}
+  };
+  document.querySelectorAll("[data-puzzle]").forEach(button=>button.addEventListener("click",()=>{
+    const puzzle=academyPuzzles[button.dataset.puzzle];
+    const check=new Chess();if(!check.load(puzzle.fen)){document.getElementById("libraryMessage").textContent="Nie udało się załadować zadania.";return;}
+    trainerTasks=[{...puzzle,loss:0}];trainerIndex=0;trainerGame=null;trainerSolved=false;trainerScore=0;hintLevel=0;trainerSelected=null;trainerTargets=[];
+    startTraining.disabled=false;trainerHint.disabled=true;nextTask.disabled=true;trainerPoints.textContent="Punkty treningowe w tej sesji: 0";
+    trainerProgress.textContent="Zadanie z biblioteki gotowe";trainerMessage.textContent="Zadanie załadowane. Kliknij „Rozpocznij trening” i znajdź najlepszy ruch.";
+    renderTrainer();document.getElementById("libraryMessage").textContent="Zadanie załadowane do trenera powyżej.";
+    document.querySelector(".trainer-box").scrollIntoView({behavior:"smooth",block:"center"});
+  }));
+  renderAcademy();
+
+  // Panel trenera 0.8 — lokalny prototyp na fikcyjnych pseudonimach.
+  const coachKey="sparta64_coach_demo_v08";
+  const taskNames={mate:"Mat w jednym",fork:"Widełki",defense:"Bezpieczna obrona",review:"Analiza własnej partii"};
+  const demoRoster=[
+    {id:"demo01",name:"Zawodnik 01",level:"Początkujący",xp:15,assignments:[]},
+    {id:"demo02",name:"Zawodnik 02",level:"Podstawowy",xp:40,assignments:[]},
+    {id:"demo03",name:"Zawodnik 03",level:"Średni",xp:75,assignments:[]},
+    {id:"demo04",name:"Zawodnik 04",level:"Początkujący",xp:5,assignments:[]},
+    {id:"demo05",name:"Zawodnik 05",level:"Zaawansowany",xp:120,assignments:[]}
+  ];
+  let coachData=demoRoster,selectedAthleteId=null,selectedAssignmentId=null;
+  try{const saved=JSON.parse(localStorage.getItem(coachKey)||"null");if(Array.isArray(saved))coachData=saved;}catch(e){}
+  const $=id=>document.getElementById(id);
+  function saveCoach(){try{localStorage.setItem(coachKey,JSON.stringify(coachData));}catch(e){$("coachMessage").textContent="Nie udało się zapisać danych w tej przeglądarce.";}}
+  function selectedAthlete(){return coachData.find(a=>a.id===selectedAthleteId)||null;}
+  function renderCoach(){
+    const total=coachData.reduce((n,a)=>n+a.assignments.length,0),done=coachData.reduce((n,a)=>n+a.assignments.filter(x=>x.done).length,0);
+    $("coachPlayersCount").textContent=coachData.length;$("coachAssignmentsCount").textContent=total;$("coachCompletedCount").textContent=done;
+    const q=$("coachSearch").value.trim().toLocaleLowerCase("pl"),filter=$("coachFilter").value;
+    const visible=coachData.filter(a=>(!q||a.name.toLocaleLowerCase("pl").includes(q))&&(filter==="all"||a.level===filter));
+    $("coachRoster").innerHTML=visible.map(a=>`<tr class="${a.id===selectedAthleteId?"active":""}"><td>${escapeCoach(a.name)}</td><td>${a.level}</td><td>${a.xp}</td><td>${a.assignments.filter(x=>x.done).length}/${a.assignments.length}</td><td><button type="button" data-select-athlete="${a.id}">Wybierz</button></td></tr>`).join("")||'<tr><td colspan="5">Brak pasujących zawodników.</td></tr>';
+    $("coachRoster").querySelectorAll("[data-select-athlete]").forEach(b=>b.addEventListener("click",()=>{selectedAthleteId=b.dataset.selectAthlete;selectedAssignmentId=null;renderCoach();}));
+    const a=selectedAthlete();$("selectedAthleteLabel").textContent=a?`Wybrano: ${a.name} · ${a.level} · ${a.xp} XP`:"Wybierz zawodnika z listy.";
+    if(!a){$("coachAssignments").innerHTML='<div class="note">Wybierz zawodnika, aby zobaczyć jego zadania.</div>';$("completeTask").disabled=true;return;}
+    $("coachAssignments").innerHTML=a.assignments.length?a.assignments.map(x=>`<div class="assignment"><label><input type="radio" name="selectedAssignment" value="${x.id}" ${x.id===selectedAssignmentId?"checked":""} ${x.done?"disabled":""}> <strong>${taskNames[x.type]}</strong> ${x.done?"· Ukończone":"· Do wykonania"}</label><small>Przydzielono: ${new Date(x.created).toLocaleDateString("pl-PL")}</small></div>`).join(""):'<div class="note">Brak przydzielonych zadań.</div>';
+    $("coachAssignments").querySelectorAll('input[name="selectedAssignment"]').forEach(r=>r.addEventListener("change",()=>{selectedAssignmentId=r.value;$("completeTask").disabled=false;}));
+    $("completeTask").disabled=!selectedAssignmentId||a.assignments.some(x=>x.id===selectedAssignmentId&&x.done);
+  }
+  function escapeCoach(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+  $("coachSearch").addEventListener("input",renderCoach);$("coachFilter").addEventListener("change",renderCoach);
+  $("addAthlete").addEventListener("click",()=>{const name=$("newAthleteName").value.trim();if(!name){$("coachMessage").textContent="Wpisz pseudonim testowy zawodnika.";return;}if(coachData.some(a=>a.name.toLocaleLowerCase("pl")===name.toLocaleLowerCase("pl"))){$("coachMessage").textContent="Taki pseudonim już istnieje. Wybierz inny.";return;}const id="ath_"+Date.now();coachData.push({id,name,level:$("newAthleteLevel").value,xp:0,assignments:[]});selectedAthleteId=id;selectedAssignmentId=null;$("newAthleteName").value="";saveCoach();renderCoach();$("coachMessage").textContent="Dodano zawodnika testowego.";});
+  $("assignTask").addEventListener("click",()=>{const a=selectedAthlete();if(!a){$("coachMessage").textContent="Najpierw wybierz zawodnika.";return;}const type=$("coachTaskSelect").value;a.assignments.push({id:"task_"+Date.now(),type,created:new Date().toISOString(),done:false});selectedAssignmentId=null;saveCoach();renderCoach();$("coachMessage").textContent=`Przydzielono zadanie „${taskNames[type]}” zawodnikowi ${a.name}.`;});
+  $("completeTask").addEventListener("click",()=>{const a=selectedAthlete(),x=a&&a.assignments.find(t=>t.id===selectedAssignmentId);if(!x||x.done)return;const reward=Math.max(1,Math.min(50,Number($("coachXpReward").value)||5));x.done=true;a.xp+=reward;selectedAssignmentId=null;saveCoach();renderCoach();$("coachMessage").textContent=`Oznaczono zadanie jako ukończone. ${a.name} otrzymuje ${reward} XP. To ręczne potwierdzenie trenera, nie wynik z konta zawodnika.`;});
+  renderCoach();
+
+  // Struktura Akademii 0.9 — lokalny model danych przygotowany do późniejszej migracji do API.
+  const a09Key="sparta64_academy_structure_v09";
+  const a09Defaults={
+    coaches:[{id:"coach_demo_1",name:"Trener główny"},{id:"coach_demo_2",name:"Trener wspierający"}],
+    groups:[
+      {id:"group_beginner",name:"Początkujący",level:"Początkujący",coachId:"coach_demo_1"},
+      {id:"group_basic",name:"Grupa podstawowa",level:"Podstawowy",coachId:"coach_demo_2"},
+      {id:"group_advanced",name:"Grupa zaawansowana",level:"Zaawansowany",coachId:"coach_demo_1"}
+    ],
+    memberships:{demo01:"group_beginner",demo02:"group_basic",demo03:"group_basic",demo04:"group_beginner",demo05:"group_advanced"},
+    groupTasks:[],sessions:[]
+  };
+  let a09Data;
+  try{
+    const saved=JSON.parse(localStorage.getItem(a09Key)||"null");
+    a09Data=saved&&typeof saved==="object"?{...a09Defaults,...saved,coaches:Array.isArray(saved.coaches)?saved.coaches:a09Defaults.coaches,groups:Array.isArray(saved.groups)?saved.groups:a09Defaults.groups,groupTasks:Array.isArray(saved.groupTasks)?saved.groupTasks:[],sessions:Array.isArray(saved.sessions)?saved.sessions:[],memberships:saved.memberships||a09Defaults.memberships}:JSON.parse(JSON.stringify(a09Defaults));
+  }catch(e){a09Data=JSON.parse(JSON.stringify(a09Defaults));}
+  const a09=id=>document.getElementById(id);
+  const a09Esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const a09Group=id=>a09Data.groups.find(g=>g.id===id);
+  const a09Coach=id=>a09Data.coaches.find(c=>c.id===id);
+  function saveA09(){try{localStorage.setItem(a09Key,JSON.stringify(a09Data));}catch(e){a09("a09Message").textContent="Nie udało się zapisać danych lokalnych.";}}
+  function refreshA09Selects(){
+    const groupOptions=a09Data.groups.map(g=>`<option value="${a09Esc(g.id)}">${a09Esc(g.name)}</option>`).join("");
+    ["a09MembershipGroup","a09TaskGroup","a09SessionGroup"].forEach(id=>{const el=a09(id),old=el.value;el.innerHTML=groupOptions||'<option value="">Najpierw utwórz grupę</option>';if([...el.options].some(o=>o.value===old))el.value=old;});
+    const coachOptions=a09Data.coaches.map(c=>`<option value="${a09Esc(c.id)}">${a09Esc(c.name)}</option>`).join("");
+    ["a09GroupCoach","a09SessionCoach"].forEach(id=>{const el=a09(id),old=el.value;el.innerHTML=coachOptions||'<option value="">Najpierw dodaj trenera</option>';if([...el.options].some(o=>o.value===old))el.value=old;});
+  }
+  function renderA09(){
+    refreshA09Selects();
+    a09("a09GroupCount").textContent=a09Data.groups.length;
+    a09("a09CoachCount").textContent=a09Data.coaches.length;
+    a09("a09SessionCount").textContent=a09Data.sessions.length;
+    a09("a09Groups").innerHTML=a09Data.groups.map(g=>{
+      const members=coachData.filter(p=>a09Data.memberships[p.id]===g.id);
+      const coach=a09Coach(g.coachId);
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(g.name)}</strong><span class="pill">${members.length} zawodników</span></div><p>${a09Esc(g.level)} · Trener: ${a09Esc(coach?coach.name:"Nieprzypisany")}</p><p>${members.length?members.map(p=>a09Esc(p.name)).join(", "):"Brak przypisanych zawodników."}</p><label class="a09-mini">Zmień trenera <select data-group-coach="${a09Esc(g.id)}">${a09Data.coaches.map(c=>`<option value="${a09Esc(c.id)}" ${c.id===g.coachId?"selected":""}>${a09Esc(c.name)}</option>`).join("")}</select></label></div>`;
+    }).join("")||'<p class="note">Nie ma jeszcze grup. Utwórz pierwszą grupę.</p>';
+    a09("a09Groups").querySelectorAll("[data-group-coach]").forEach(sel=>sel.addEventListener("change",()=>{const g=a09Group(sel.dataset.groupCoach);if(g){g.coachId=sel.value;saveA09();renderA09();}}));
+    a09("a09Coaches").innerHTML=a09Data.coaches.map(c=>{
+      const groups=a09Data.groups.filter(g=>g.coachId===c.id);
+      return `<div class="a09-item"><strong>${a09Esc(c.name)}</strong><p>Prowadzi grupy: ${groups.length?groups.map(g=>a09Esc(g.name)).join(", "):"brak"}</p></div>`;
+    }).join("")||'<p class="note">Brak trenerów.</p>';
+    a09("a09GroupTasks").innerHTML=a09Data.groupTasks.slice().sort((x,y)=>y.created.localeCompare(x.created)).map(t=>{
+      const g=a09Group(t.groupId),members=coachData.filter(p=>a09Data.memberships[p.id]===t.groupId);
+      const completed=(t.doneAthleteIds||[]).length;
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(taskNames[t.type]||t.type)}</strong><span class="pill">${completed}/${members.length} ukończone</span></div><p>Grupa: ${a09Esc(g?g.name:"usunięta grupa")} · Termin: ${t.due?new Date(t.due+"T12:00:00").toLocaleDateString("pl-PL"):"bez terminu"} · Nagroda: ${t.xp} XP</p><label class="a09-mini">Zaliczyć wybranemu zawodnikowi <select data-task-athlete="${a09Esc(t.id)}"><option value="">Wybierz zawodnika grupy</option>${members.map(m=>`<option value="${a09Esc(m.id)}">${a09Esc(m.name)}</option>`).join("")}</select></label> <button class="action secondary" type="button" data-task-complete="${a09Esc(t.id)}">Zalicz</button><p class="a09-mini">${completed?`Ukończyli: ${members.filter(m=>(t.doneAthleteIds||[]).includes(m.id)).map(m=>a09Esc(m.name)).join(", ")}`:"Jeszcze nikt nie ukończył."}</p></div>`;
+    }).join("")||'<p class="note">Brak zadań grupowych.</p>';
+    a09("a09GroupTasks").querySelectorAll("[data-task-complete]").forEach(btn=>btn.addEventListener("click",()=>{
+      const task=a09Data.groupTasks.find(t=>t.id===btn.dataset.taskComplete),select=a09("a09GroupTasks").querySelector(`[data-task-athlete="${btn.dataset.taskComplete}"]`),athlete=coachData.find(p=>p.id===select?.value);
+      if(!task||!athlete){a09("a09Message").textContent="Wybierz zawodnika z tej grupy.";return;}
+      task.doneAthleteIds=task.doneAthleteIds||[];
+      if(task.doneAthleteIds.includes(athlete.id)){a09("a09Message").textContent="To zadanie jest już zaliczone temu zawodnikowi.";return;}
+      task.doneAthleteIds.push(athlete.id);athlete.xp+=Number(task.xp)||5;
+      saveA09();saveCoach();renderA09();renderCoach();a09("a09Message").textContent=`Zaliczone: ${athlete.name} otrzymuje ${task.xp} XP.`;
+    }));
+    a09("a09Sessions").innerHTML=a09Data.sessions.slice().sort((x,y)=>x.date.localeCompare(y.date)).map(s=>{
+      const g=a09Group(s.groupId),c=a09Coach(s.coachId);
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(s.topic)}</strong><span class="pill">${new Date(s.date).toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${a09Esc(g?g.name:"usunięta grupa")} · ${a09Esc(c?c.name:"Nieprzypisany trener")}</p><button class="action secondary" type="button" data-session-delete="${a09Esc(s.id)}">Usuń termin</button></div>`;
+    }).join("")||'<p class="note">Kalendarz jest pusty. Dodaj pierwszy trening.</p>';
+    a09("a09Sessions").querySelectorAll("[data-session-delete]").forEach(btn=>btn.addEventListener("click",()=>{a09Data.sessions=a09Data.sessions.filter(s=>s.id!==btn.dataset.sessionDelete);saveA09();renderA09();}));
+    const ranked=coachData.slice().sort((x,y)=>y.xp-x.xp);
+    a09("a09Ranking").innerHTML=ranked.map((p,i)=>{const g=a09Group(a09Data.memberships[p.id]);return `<tr><td>${i+1}</td><td>${a09Esc(p.name)}</td><td>${a09Esc(g?g.name:"Bez grupy")}</td><td>${a09Esc(p.level)}</td><td><strong>${p.xp}</strong></td><td>${p.assignments.filter(t=>t.done).length+(a09Data.groupTasks.reduce((n,t)=>n+((t.doneAthleteIds||[]).includes(p.id)?1:0),0))}</td></tr>`;}).join("")||'<tr><td colspan="6">Brak zawodników.</td></tr>';
+  }
+  a09("a09AddCoach").addEventListener("click",()=>{
+    const name=a09("a09CoachName").value.trim();if(!name){a09("a09Message").textContent="Wpisz nazwę lub pseudonim trenera.";return;}
+    if(a09Data.coaches.some(c=>c.name.toLocaleLowerCase("pl")===name.toLocaleLowerCase("pl"))){a09("a09Message").textContent="Taki trener już istnieje.";return;}
+    a09Data.coaches.push({id:"coach_"+Date.now(),name});a09("a09CoachName").value="";saveA09();renderA09();a09("a09Message").textContent="Dodano trenera testowego.";
+  });
+  a09("a09AddGroup").addEventListener("click",()=>{
+    const name=a09("a09GroupName").value.trim();if(!name){a09("a09Message").textContent="Podaj nazwę grupy.";return;}
+    if(!a09Data.coaches.length){a09("a09Message").textContent="Najpierw dodaj trenera.";return;}
+    a09Data.groups.push({id:"group_"+Date.now(),name,level:a09("a09GroupLevel").value,coachId:a09("a09GroupCoach").value});a09("a09GroupName").value="";saveA09();renderA09();a09("a09Message").textContent="Utworzono grupę.";
+  });
+  a09("a09AssignMember").addEventListener("click",()=>{
+    const athlete=selectedAthlete(),group=a09Group(a09("a09MembershipGroup").value);
+    if(!athlete){a09("a09Message").textContent="Najpierw wybierz zawodnika w panelu trenera 0.8.";return;}
+    if(!group){a09("a09Message").textContent="Najpierw utwórz grupę.";return;}
+    a09Data.memberships[athlete.id]=group.id;saveA09();renderA09();a09("a09Message").textContent=`${athlete.name} przypisany do grupy ${group.name}.`;
+  });
+  a09("a09AssignGroupTask").addEventListener("click",()=>{
+    const group=a09Group(a09("a09TaskGroup").value),members=group?coachData.filter(p=>a09Data.memberships[p.id]===group.id):[];
+    if(!group){a09("a09Message").textContent="Najpierw utwórz grupę.";return;}
+    if(!members.length){a09("a09Message").textContent="Ta grupa nie ma jeszcze zawodników.";return;}
+    a09Data.groupTasks.push({id:"grouptask_"+Date.now(),groupId:group.id,type:a09("a09TaskType").value,due:a09("a09TaskDue").value,xp:Math.max(1,Math.min(50,Number(a09("a09TaskXp").value)||5)),created:new Date().toISOString(),doneAthleteIds:[]});
+    saveA09();renderA09();a09("a09Message").textContent=`Przydzielono zadanie grupie ${group.name}.`;
+  });
+  a09("a09AddSession").addEventListener("click",()=>{
+    const date=a09("a09SessionDate").value,topic=a09("a09SessionTopic").value.trim(),group=a09Group(a09("a09SessionGroup").value);
+    if(!date||!topic||!group){a09("a09Message").textContent="Uzupełnij datę, temat i grupę treningu.";return;}
+    a09Data.sessions.push({id:"session_"+Date.now(),date,topic,groupId:group.id,coachId:a09("a09SessionCoach").value});saveA09();a09("a09SessionTopic").value="";renderA09();a09("a09Message").textContent="Dodano trening do kalendarza.";
+  });
+  renderA09();
+
+  // Kopia zapasowa 1.0: eksport/import wszystkich lokalnych danych Akademii.
+  const backupKeys={profile:academyKey,players:coachKey,structure:a09Key};
+  function readBackupData(){
+    const data={};
+    for(const [name,key] of Object.entries(backupKeys)){
+      const raw=localStorage.getItem(key);
+      data[name]=raw===null?null:JSON.parse(raw);
+    }
+    return data;
+  }
+  a09("a10Export").addEventListener("click",()=>{
+    try{
+      const backup={format:"SPARTA64_BACKUP",version:1,createdAt:new Date().toISOString(),data:readBackupData()};
+      const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download=`SPARTA64_kopia_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      a09("a10Message").textContent="Kopia zapasowa została przygotowana. Zachowaj pobrany plik w bezpiecznym miejscu.";
+    }catch(e){a09("a10Message").textContent="Nie udało się przygotować kopii. Sprawdź, czy pamięć przeglądarki jest dostępna.";}
+  });
+  a09("a10ImportFile").addEventListener("change",async event=>{
+    const file=event.target.files&&event.target.files[0];if(!file)return;
+    try{
+      const backup=JSON.parse(await file.text());
+      if(backup.format!=="SPARTA64_BACKUP"||backup.version!==1||!backup.data||typeof backup.data!=="object")throw new Error("format");
+      const d=backup.data;
+      if(d.profile!==null&&(!d.profile||typeof d.profile!=="object"||Array.isArray(d.profile)))throw new Error("profile");
+      if(d.players!==null&&!Array.isArray(d.players))throw new Error("players");
+      if(d.structure!==null&&(!d.structure||typeof d.structure!=="object"||Array.isArray(d.structure)))throw new Error("structure");
+      if(!confirm("Odtworzyć dane z kopii? Aktualne lokalne dane profilu, zawodników i Akademii zostaną zastąpione zawartością pliku.")){event.target.value="";return;}
+      for(const [name,key] of Object.entries(backupKeys)){
+        if(d[name]===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(d[name]));
+      }
+      a09("a10Message").textContent="Dane odtworzone. Strona zostanie odświeżona.";
+      setTimeout(()=>location.reload(),700);
+    }catch(e){a09("a10Message").textContent="Nieprawidłowy plik kopii SPARTA 64. Żadne dane nie zostały zmienione.";event.target.value="";}
+  });
+
+  document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
+  opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
+  render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
+})();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(()=>{
+  const SUPABASE_URL='https://jlfssddveydozcknhunb.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY='sb_publishable_icoNpJ4NoROptMPgioJylw_YlqqXyMg';
+  const msg=document.getElementById('authMessage');
+  const gate=document.getElementById('spartaAuth');
+  const sessionBar=document.getElementById('spartaSession');
+  const setMsg=(t)=>{msg.textContent=t;};
+  if(!window.supabase){setMsg('Nie udało się załadować biblioteki logowania. Sprawdź połączenie z internetem i odśwież stronę.');return;}
+  const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  let busy=false, currentProfile=null, reviewBusy=false;
+  const reviewPanel=document.getElementById('spartaReview');
+  const studentPanel=document.getElementById('spartaStudent');
+  const studentTaskList=document.getElementById('studentTaskList');
+  const studentMessage=document.getElementById('studentMessage');
+  let studentBusy=false;
+  const reviewList=document.getElementById('reviewList');
+  const reviewMessage=document.getElementById('reviewMessage');
+  const escReview=(v)=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  async function loadReviews(){
+    if(!currentProfile || !['admin','trainer'].includes(currentProfile.role))return;
+    if(reviewBusy)return; reviewBusy=true;
+    reviewList.innerHTML='<div class="note">Pobieram oczekujące zgłoszenia…</div>';
+    try{
+      const {data:items,error}=await client.from('task_completions').select('id,task_id,player_id,completed_at,status').eq('status','pending').order('completed_at',{ascending:true});
+      if(error)throw error;
+      if(!items?.length){reviewList.innerHTML='<div class="note">Brak oczekujących zgłoszeń. Gdy zawodnicy zgłoszą zadania, pojawią się tutaj.</div>';reviewMessage.textContent='Lista jest aktualna.';return;}
+      const taskIds=[...new Set(items.map(x=>x.task_id))], playerIds=[...new Set(items.map(x=>x.player_id))];
+      const [{data:tasks,error:te},{data:players,error:pe}]=await Promise.all([
+        client.from('tasks').select('id,title,xp_reward,group_id').in('id',taskIds),
+        client.from('profiles').select('id,display_name').in('id',playerIds)
+      ]);
+      if(te)throw te;if(pe)throw pe;
+      const tm=new Map((tasks||[]).map(x=>[x.id,x])), pm=new Map((players||[]).map(x=>[x.id,x]));
+      reviewList.innerHTML='';
+      items.forEach(item=>{
+        const task=tm.get(item.task_id), player=pm.get(item.player_id);
+        const row=document.createElement('div');row.className='review-row';
+        const info=document.createElement('div');
+        info.innerHTML=`<strong>${escReview(player?.display_name||'Zawodnik')}</strong> · ${escReview(task?.title||'Zadanie')}<div class="review-meta">Zgłoszono: ${escReview(new Date(item.completed_at).toLocaleString('pl-PL'))} · Nagroda: ${Number(task?.xp_reward||0)} XP</div>`;
+        const actions=document.createElement('div');actions.className='review-actions';
+        const yes=document.createElement('button');yes.className='approve';yes.textContent='Zatwierdź';yes.addEventListener('click',()=>decideReview(item.id,'approved',yes));
+        const no=document.createElement('button');no.className='reject';no.textContent='Odrzuć';no.addEventListener('click',()=>decideReview(item.id,'rejected',no));
+        actions.append(yes,no);row.append(info,actions);reviewList.append(row);
+      });
+      reviewMessage.textContent=`Oczekujące zgłoszenia: ${items.length}. Widoczne są wyłącznie zgłoszenia dostępne dla Twojego konta.`;
+    }catch(e){reviewList.innerHTML='<div class="note">Nie udało się pobrać zgłoszeń.</div>';reviewMessage.textContent='Błąd: '+(e.message||String(e));}
+    finally{reviewBusy=false;}
+  }
+  async function decideReview(id,decision,button){
+    if(button)button.disabled=true;
+    try{
+      const {data,error}=await client.rpc('review_task_completion',{p_completion_id:id,p_decision:decision});
+      if(error)throw error;
+      reviewMessage.textContent=decision==='approved'?`Zatwierdzono. Przyznano ${data?.xp_awarded??0} XP.`:'Zgłoszenie odrzucone.';
+      await loadReviews();
+    }catch(e){reviewMessage.textContent='Nie udało się rozpatrzyć zgłoszenia: '+(e.message||String(e));if(button)button.disabled=false;}
+  }
+  document.getElementById('reviewRefresh').addEventListener('click',loadReviews);
+
+  const escStudent=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  async function loadStudentTasks(){
+    if(!currentProfile || currentProfile.role!=='player' || studentBusy)return;
+    studentBusy=true;
+    studentTaskList.innerHTML='<div class="note">Pobieram zadania…</div>';
+    try{
+      const {data:members,error:me}=await client.from('group_members').select('group_id').eq('player_id',(await client.auth.getUser()).data.user.id);
+      if(me)throw me;
+      const groupIds=[...new Set((members||[]).map(x=>x.group_id))];
+      if(!groupIds.length){
+        studentTaskList.innerHTML='<div class="note">Nie jesteś jeszcze przypisany do żadnej grupy. Poproś trenera o przypisanie.</div>';
+        studentMessage.textContent='Brak przypisanych grup.';
+        return;
+      }
+      const {data:tasks,error:te}=await client.from('tasks').select('id,title,description,xp_reward,due_date,group_id').in('group_id',groupIds).order('due_date',{ascending:true});
+      if(te)throw te;
+      if(!tasks?.length){
+        studentTaskList.innerHTML='<div class="note">Twoja grupa nie ma jeszcze przydzielonych zadań.</div>';
+        studentMessage.textContent='Zadania pojawią się tutaj, gdy trener je przydzieli.';
+        return;
+      }
+      const taskIds=tasks.map(t=>t.id);
+      const {data:completions,error:ce}=await client.from('task_completions').select('id,task_id,status,completed_at,xp_awarded').eq('player_id',(await client.auth.getUser()).data.user.id).in('task_id',taskIds);
+      if(ce)throw ce;
+      const latest=new Map();
+      (completions||[]).forEach(c=>{
+        const old=latest.get(c.task_id);
+        if(!old || new Date(c.completed_at)>new Date(old.completed_at))latest.set(c.task_id,c);
+      });
+      studentTaskList.innerHTML='';
+      tasks.forEach(task=>{
+        const completion=latest.get(task.id);
+        const status=completion?.status||'not_sent';
+        const labels={not_sent:'Do wykonania',pending:'Oczekuje na trenera',approved:'Zaliczone',rejected:'Odrzucone · możesz poprawić'};
+        const row=document.createElement('div');row.className='student-task';
+        const head=document.createElement('div');head.className='student-task-head';
+        const title=document.createElement('strong');title.textContent=task.title||'Zadanie';
+        const badge=document.createElement('span');badge.className='student-status '+status;badge.textContent=labels[status]||status;
+        head.append(title,badge);row.append(head);
+        if(task.description){const desc=document.createElement('div');desc.className='student-meta';desc.textContent=task.description;row.append(desc);}
+        const meta=document.createElement('div');meta.className='student-meta';
+        meta.textContent=`Nagroda: ${Number(task.xp_reward||0)} XP${task.due_date?' · Termin: '+task.due_date:''}`;
+        row.append(meta);
+        if(completion?.status==='approved'){
+          const awarded=document.createElement('div');awarded.className='student-meta';awarded.textContent=`Przyznano: ${Number(completion.xp_awarded||0)} XP`;row.append(awarded);
+        } else if(status!=='pending'){
+          const btn=document.createElement('button');btn.type='button';btn.className='action';btn.style.marginTop='9px';
+          btn.textContent=status==='rejected'?'Zgłoś poprawione zadanie':'Zgłoś wykonanie';
+          btn.addEventListener('click',()=>submitStudentTask(task.id,btn));
+          row.append(btn);
+        }
+        studentTaskList.append(row);
+      });
+      studentMessage.textContent=`Zadań w Twoich grupach: ${tasks.length}. Statusy są pobierane z bazy Akademii.`;
+    }catch(e){
+      studentTaskList.innerHTML='<div class="note">Nie udało się pobrać zadań.</div>';
+      studentMessage.textContent='Błąd: '+(e.message||String(e));
+    }finally{studentBusy=false;}
+  }
+  async function submitStudentTask(taskId,button){
+    if(button)button.disabled=true;
+    try{
+      const {data:userData,error:ue}=await client.auth.getUser();
+      if(ue)throw ue;
+      if(!userData?.user)throw new Error('Sesja wygasła. Zaloguj się ponownie.');
+      const {error}=await client.from('task_completions').insert({task_id:taskId,player_id:userData.user.id});
+      if(error)throw error;
+      studentMessage.textContent='Zgłoszenie wysłane! Trener zobaczy je w swoim panelu.';
+      await loadStudentTasks();
+    }catch(e){
+      studentMessage.textContent='Nie udało się wysłać zgłoszenia: '+(e.message||String(e));
+      if(button)button.disabled=false;
+    }
+  }
+  document.getElementById('studentRefresh').addEventListener('click',loadStudentTasks);
+
+  async function enter(session){
+    if(!session){currentProfile=null;reviewPanel.hidden=true;studentPanel.hidden=true;document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;return;}
+    setMsg('Sprawdzam uprawnienia konta…');
+    const {data:profile,error}=await client.from('profiles').select('display_name,role,xp').eq('id',session.user.id).single();
+    if(error||!profile){await client.auth.signOut();document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;setMsg('Zalogowano, ale nie udało się odczytać profilu zawodnika. Sprawdź tabelę profiles i jej polityki RLS.\n'+(error?.message||''));return;}
+    currentProfile=profile;
+    gate.hidden=true;document.body.classList.remove('auth-locked');sessionBar.hidden=false;
+    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);\n    studentPanel.hidden=profile.role!=='player';\n    if(profile.role==='player')loadStudentTasks();
+    const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
+    document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleNames[profile.role]||profile.role} · ${profile.xp||0} XP`;
+    const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
+    banner.textContent='Konto online jest rozpoznane. Uwaga: moduły szachowe i część danych Akademii w tej wersji nadal działają lokalnie w przeglądarce — nie są jeszcze synchronizowane z bazą.';
+    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(['admin','trainer'].includes(profile.role))loadReviews();
+  }
+  async function run(action){if(busy)return;busy=true;document.getElementById('authLogin').disabled=true;document.getElementById('authRegister').disabled=true;
+    const email=document.getElementById('authEmail').value.trim();const password=document.getElementById('authPassword').value;
+    try{
+      if(!email||!password)throw new Error('Wpisz adres e-mail i hasło.');
+      let result;
+      if(action==='login')result=await client.auth.signInWithPassword({email,password});
+      else result=await client.auth.signUp({email,password});
+      if(result.error)throw result.error;
+      if(action==='register'&&!result.data.session){setMsg('Konto zostało utworzone. Sprawdź pocztę i potwierdź adres e-mail, a następnie zaloguj się.');}
+      else if(result.data.session)await enter(result.data.session);
+      else setMsg('Operacja zakończona. Zaloguj się, aby kontynuować.');
+    }catch(e){setMsg(e.message||'Wystąpił błąd logowania.');}
+    finally{busy=false;document.getElementById('authLogin').disabled=false;document.getElementById('authRegister').disabled=false;}
+  }
+  document.getElementById('authLogin').addEventListener('click',()=>run('login'));
+  document.getElementById('authRegister').addEventListener('click',()=>run('register'));
+  document.getElementById('authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')run('login');});
+  document.getElementById('authLogout').addEventListener('click',async()=>{await client.auth.signOut();const b=document.getElementById('spartaOnlineNotice');if(b)b.remove();location.reload();});
+  client.auth.getSession().then(({data})=>enter(data.session));
+  client.auth.onAuthStateChange((_event,session)=>{if(session)enter(session);});
+})();
+</script>
+
+</body>
+</html>
