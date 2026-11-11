@@ -1124,6 +1124,9 @@
       box.innerHTML='<strong>Twoje grupy treningowe</strong>'+data.map(g=>`<div class="group-line"><b>${escStudent(g.group_name||'Grupa')}</b>${g.level?' · '+escStudent(g.level):''}<br>Trener: ${escStudent(g.trainer_name||'Nie przypisano trenera')}</div>`).join('');
     }catch(e){box.innerHTML='<strong>Przynależność klubowa</strong><div class="note">Nie udało się pobrać informacji o grupie i trenerze: '+escStudent(e.message||String(e))+'</div>'; }
   }
+  function studentDismissKey(userId){return 'sparta64_hidden_approved_tasks_'+userId;}
+  function getDismissedStudentTasks(userId){try{return new Set(JSON.parse(localStorage.getItem(studentDismissKey(userId))||'[]'));}catch(e){return new Set();}}
+  function saveDismissedStudentTasks(userId,set){try{localStorage.setItem(studentDismissKey(userId),JSON.stringify([...set]));return true;}catch(e){return false;}}
   async function loadStudentTasks(){
     if(!currentProfile || !currentProfile.roles?.includes('player') || studentBusy)return;
     studentBusy=true;
@@ -1146,6 +1149,8 @@
         return;
       }
       const taskIds=tasks.map(t=>t.id);
+      const currentUserId=(await client.auth.getUser()).data.user.id;
+      const dismissedTaskIds=getDismissedStudentTasks(currentUserId);
       const {data:completions,error:ce}=await client.from('task_completions').select('id,task_id,status,completed_at,xp_awarded').eq('player_id',(await client.auth.getUser()).data.user.id).in('task_id',taskIds);
       if(ce)throw ce;
       const latest=new Map();
@@ -1157,6 +1162,7 @@
       tasks.forEach(task=>{
         const completion=latest.get(task.id);
         const status=completion?.status||'not_sent';
+        if(status==='approved' && dismissedTaskIds.has(String(task.id)))return;
         const labels={not_sent:'Do wykonania',pending:'Oczekuje na trenera',approved:'Zaliczone',rejected:'Odrzucone · możesz poprawić'};
         const row=document.createElement('div');row.className='student-task';
         const head=document.createElement('div');head.className='student-task-head';
@@ -1168,8 +1174,12 @@
           dismiss.setAttribute('aria-label','Ukryj zaliczone zadanie z listy');
           dismiss.title='Ukryj z listy (nie usuwa zadania ani punktów XP)';
           dismiss.addEventListener('click',()=>{
+            dismissedTaskIds.add(String(task.id));
+            if(!saveDismissedStudentTasks(currentUserId,dismissedTaskIds)){
+              setStudentMessage('Nie udało się zapamiętać ukrycia zadania w tej przeglądarce.');return;
+            }
             row.remove();
-            setStudentMessage('Zaliczone zadanie ukryto z tego widoku. Zapis w Akademii i przyznane XP pozostają bez zmian.');
+            setStudentMessage('Zaliczone zadanie ukryto. Nie pojawi się ponownie po odświeżeniu na tym urządzeniu. Historia i XP pozostają bez zmian.');
           });
           actions.append(dismiss);
         }
@@ -1188,7 +1198,8 @@
         }
         studentTaskList.append(row);
       });
-      setStudentMessage(`Zadań w Twoich grupach: ${tasks.length}. Statusy są pobierane z bazy Akademii.`);
+      const visibleTasks=tasks.filter(task=>{const c=latest.get(task.id);return !(c?.status==='approved' && dismissedTaskIds.has(String(task.id)));}).length;
+      setStudentMessage(`Zadań widocznych w Twoich grupach: ${visibleTasks}. Statusy są pobierane z bazy Akademii.`);
     }catch(e){
       studentTaskList.innerHTML='<div class="note">Nie udało się pobrać zadań.</div>';
       setStudentMessage('Błąd: '+(e.message||String(e)));
