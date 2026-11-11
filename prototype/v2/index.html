@@ -64,6 +64,18 @@
     @media(max-width:760px){.a09-grid{grid-template-columns:1fr}.academy09-card{padding:13px}}
     @media(max-width:420px){.a09-form{grid-template-columns:1fr}.a09-form .wide{grid-column:auto}}
   
+
+    #spartaReview{max-width:1050px;margin:0 auto 24px;padding:0 16px}
+    #spartaReview .review-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
+    #spartaReview .review-row{padding:12px;margin:9px 0;border:1px solid var(--line);border-radius:10px;background:#f8f5ee;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    #spartaReview .review-meta{font-size:12px;color:var(--muted);margin-top:3px}
+    #spartaReview .review-actions{display:flex;gap:7px;flex-wrap:wrap}
+    #spartaReview button{border:0;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer}
+    #spartaReview .approve{background:#246b43;color:white}#spartaReview .reject{background:#eee2df;color:#8b2929}#spartaReview .refresh{background:#eee9df;color:#34363a}
+    #spartaReview .review-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap}
+    body.auth-locked>#spartaReview{display:none!important}
+    @media(max-width:760px){#spartaReview .review-card{padding:13px}}
+
     body.auth-locked>header,body.auth-locked>main,body.auth-locked>.academy,body.auth-locked>footer{display:none!important}
     #spartaAuth{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at top,#33343a,#17191d 65%);color:#f7f4ec;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
     #spartaAuth .auth-card{width:min(100%,440px);background:#24262c;border:1px solid #51483b;border-top:4px solid #a92e32;border-radius:18px;padding:26px;box-shadow:0 18px 60px #0008}
@@ -95,10 +107,22 @@
 </div>
 <div id="spartaSession" hidden><span id="sessionLabel"></span><button id="authLogout">Wyloguj</button></div>
 
+<div id="spartaReview" hidden>
+  <section class="review-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div><h2 style="margin:0">Panel trenera · zgłoszenia online</h2><div class="note">Zatwierdzanie odbywa się bezpośrednio w Supabase. Punkty XP nalicza baza danych.</div></div>
+      <button class="refresh" id="reviewRefresh">Odśwież zgłoszenia</button>
+    </div>
+    <div id="reviewList" aria-live="polite" class="a09-list"><div class="note">Ładowanie zgłoszeń…</div></div>
+    <div id="reviewMessage" class="review-message" role="status">Panel dostępny dla administratora i trenera.</div>
+  </section>
+</div>
+
+
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 1.0</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 2.1</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -266,7 +290,7 @@
   </div>
 </section>
 
-<footer>SPARTA 64 · Prototyp 1.0 · Panel trenera demonstracyjny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<footer>SPARTA 64 · Prototyp 2.1 · Panel trenera online · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -762,18 +786,64 @@
   const setMsg=(t)=>{msg.textContent=t;};
   if(!window.supabase){setMsg('Nie udało się załadować biblioteki logowania. Sprawdź połączenie z internetem i odśwież stronę.');return;}
   const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-  let busy=false;
+  let busy=false, currentProfile=null, reviewBusy=false;
+  const reviewPanel=document.getElementById('spartaReview');
+  const reviewList=document.getElementById('reviewList');
+  const reviewMessage=document.getElementById('reviewMessage');
+  const escReview=(v)=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  async function loadReviews(){
+    if(!currentProfile || !['admin','trainer'].includes(currentProfile.role))return;
+    if(reviewBusy)return; reviewBusy=true;
+    reviewList.innerHTML='<div class="note">Pobieram oczekujące zgłoszenia…</div>';
+    try{
+      const {data:items,error}=await client.from('task_completions').select('id,task_id,player_id,completed_at,status').eq('status','pending').order('completed_at',{ascending:true});
+      if(error)throw error;
+      if(!items?.length){reviewList.innerHTML='<div class="note">Brak oczekujących zgłoszeń. Gdy zawodnicy zgłoszą zadania, pojawią się tutaj.</div>';reviewMessage.textContent='Lista jest aktualna.';return;}
+      const taskIds=[...new Set(items.map(x=>x.task_id))], playerIds=[...new Set(items.map(x=>x.player_id))];
+      const [{data:tasks,error:te},{data:players,error:pe}]=await Promise.all([
+        client.from('tasks').select('id,title,xp_reward,group_id').in('id',taskIds),
+        client.from('profiles').select('id,display_name').in('id',playerIds)
+      ]);
+      if(te)throw te;if(pe)throw pe;
+      const tm=new Map((tasks||[]).map(x=>[x.id,x])), pm=new Map((players||[]).map(x=>[x.id,x]));
+      reviewList.innerHTML='';
+      items.forEach(item=>{
+        const task=tm.get(item.task_id), player=pm.get(item.player_id);
+        const row=document.createElement('div');row.className='review-row';
+        const info=document.createElement('div');
+        info.innerHTML=`<strong>${escReview(player?.display_name||'Zawodnik')}</strong> · ${escReview(task?.title||'Zadanie')}<div class="review-meta">Zgłoszono: ${escReview(new Date(item.completed_at).toLocaleString('pl-PL'))} · Nagroda: ${Number(task?.xp_reward||0)} XP</div>`;
+        const actions=document.createElement('div');actions.className='review-actions';
+        const yes=document.createElement('button');yes.className='approve';yes.textContent='Zatwierdź';yes.addEventListener('click',()=>decideReview(item.id,'approved',yes));
+        const no=document.createElement('button');no.className='reject';no.textContent='Odrzuć';no.addEventListener('click',()=>decideReview(item.id,'rejected',no));
+        actions.append(yes,no);row.append(info,actions);reviewList.append(row);
+      });
+      reviewMessage.textContent=`Oczekujące zgłoszenia: ${items.length}. Widoczne są wyłącznie zgłoszenia dostępne dla Twojego konta.`;
+    }catch(e){reviewList.innerHTML='<div class="note">Nie udało się pobrać zgłoszeń.</div>';reviewMessage.textContent='Błąd: '+(e.message||String(e));}
+    finally{reviewBusy=false;}
+  }
+  async function decideReview(id,decision,button){
+    if(button)button.disabled=true;
+    try{
+      const {data,error}=await client.rpc('review_task_completion',{p_completion_id:id,p_decision:decision});
+      if(error)throw error;
+      reviewMessage.textContent=decision==='approved'?`Zatwierdzono. Przyznano ${data?.xp_awarded??0} XP.`:'Zgłoszenie odrzucone.';
+      await loadReviews();
+    }catch(e){reviewMessage.textContent='Nie udało się rozpatrzyć zgłoszenia: '+(e.message||String(e));if(button)button.disabled=false;}
+  }
+  document.getElementById('reviewRefresh').addEventListener('click',loadReviews);
   async function enter(session){
-    if(!session){document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;return;}
+    if(!session){currentProfile=null;reviewPanel.hidden=true;document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;return;}
     setMsg('Sprawdzam uprawnienia konta…');
     const {data:profile,error}=await client.from('profiles').select('display_name,role,xp').eq('id',session.user.id).single();
     if(error||!profile){await client.auth.signOut();document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;setMsg('Zalogowano, ale nie udało się odczytać profilu zawodnika. Sprawdź tabelę profiles i jej polityki RLS.\n'+(error?.message||''));return;}
+    currentProfile=profile;
     gate.hidden=true;document.body.classList.remove('auth-locked');sessionBar.hidden=false;
+    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleNames[profile.role]||profile.role} · ${profile.xp||0} XP`;
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
     banner.textContent='Konto online jest rozpoznane. Uwaga: moduły szachowe i część danych Akademii w tej wersji nadal działają lokalnie w przeglądarce — nie są jeszcze synchronizowane z bazą.';
-    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);
+    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(['admin','trainer'].includes(profile.role))loadReviews();
   }
   async function run(action){if(busy)return;busy=true;document.getElementById('authLogin').disabled=true;document.getElementById('authRegister').disabled=true;
     const email=document.getElementById('authEmail').value.trim();const password=document.getElementById('authPassword').value;
