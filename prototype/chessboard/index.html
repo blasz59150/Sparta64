@@ -43,13 +43,33 @@
     @media(max-width:760px){.academy-grid{grid-template-columns:1fr}.academy-card{padding:13px}}
     @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
     @media(max-width:380px){.settings{grid-template-columns:1fr}}
+
+    .academy09{max-width:1050px;margin:0 auto 28px;padding:0 16px}
+    .academy09-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a;margin-bottom:16px}
+    .a09-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .a09-form{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:10px 0}
+    .a09-form label{font-size:12px;color:var(--muted)}
+    .a09-form input,.a09-form select,.a09-form textarea{display:block;width:100%;min-width:0;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);font:inherit}
+    .a09-form .wide{grid-column:1/-1}
+    .a09-list{display:grid;gap:8px;margin-top:10px}
+    .a09-item{padding:11px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}
+    .a09-item-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+    .a09-item p{margin:4px 0;color:var(--muted);font-size:12px}
+    .a09-item select{padding:7px;border:1px solid var(--line);border-radius:7px;background:#fff}
+    .a09-mini{font-size:12px;color:var(--muted)}
+    .a09-rank{width:100%;border-collapse:collapse;font-size:13px}
+    .a09-rank th,.a09-rank td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+    .a09-rank th{color:var(--muted)}
+    .a09-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px}
+    @media(max-width:760px){.a09-grid{grid-template-columns:1fr}.academy09-card{padding:13px}}
+    @media(max-width:420px){.a09-form{grid-template-columns:1fr}.a09-form .wide{grid-column:auto}}
   </style>
 </head>
 <body>
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.8</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.9</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -119,7 +139,7 @@
 </section>
 <section class="coach-section" aria-labelledby="coachTitle">
   <div class="coach-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 id="coachTitle">Panel trenera</h2><span class="pill">PROTOTYP 0.8</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 id="coachTitle">Panel trenera</h2><span class="pill">PROTOTYP 0.9</span></div>
     <p class="note">Demonstracyjny dziennik pracy trenera. Dane są zapisywane wyłącznie w pamięci tej przeglądarki — nie są wysyłane do klubu ani synchronizowane między urządzeniami. Używaj wyłącznie pseudonimów i danych testowych.</p>
     <div class="coach-stat"><div class="stat"><strong id="coachPlayersCount">0</strong><span class="note">Zawodnicy</span></div><div class="stat"><strong id="coachAssignmentsCount">0</strong><span class="note">Przydzielone zadania</span></div><div class="stat"><strong id="coachCompletedCount">0</strong><span class="note">Ukończone</span></div></div>
     <div class="coach-grid"><div>
@@ -140,7 +160,75 @@
     </div></div>
   </div>
 </section>
-<footer>SPARTA 64 · Prototyp 0.8 · Panel trenera demonstracyjny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+
+<section class="academy09" aria-labelledby="academy09Title">
+  <div class="academy09-card">
+    <div class="a09-item-head"><h2 id="academy09Title">Struktura Akademii · 0.9</h2><span class="pill">LOKALNY PROTOTYP</span></div>
+    <p class="note">Grupy, trenerzy, zadania grupowe i kalendarz. Dane są przechowywane lokalnie w tej przeglądarce. To etap przygotowawczy — nie ma jeszcze synchronizacji między trenerami ani prawdziwych kont.</p>
+    <div class="coach-stat">
+      <div class="stat"><strong id="a09GroupCount">0</strong><span class="note">Grupy</span></div>
+      <div class="stat"><strong id="a09CoachCount">0</strong><span class="note">Trenerzy</span></div>
+      <div class="stat"><strong id="a09SessionCount">0</strong><span class="note">Treningi w kalendarzu</span></div>
+    </div>
+  </div>
+  <div class="a09-grid">
+    <div class="academy09-card">
+      <h2>Grupy treningowe</h2>
+      <div class="a09-form">
+        <label>Nazwa grupy<input id="a09GroupName" maxlength="40" placeholder="Np. Młode talenty"></label>
+        <label>Poziom<select id="a09GroupLevel"><option>Początkujący</option><option>Podstawowy</option><option>Średni</option><option>Zaawansowany</option></select></label>
+        <label class="wide">Trener prowadzący<select id="a09GroupCoach"></select></label>
+      </div>
+      <button class="action" id="a09AddGroup">Utwórz grupę</button>
+      <div class="a09-list" id="a09Groups"></div>
+      <h3>Przypisz wybranego zawodnika do grupy</h3>
+      <div class="a09-form">
+        <label class="wide">Grupa<select id="a09MembershipGroup"></select></label>
+      </div>
+      <button class="action secondary" id="a09AssignMember">Przypisz z panelu trenera</button>
+    </div>
+    <div class="academy09-card">
+      <h2>Zespół trenerski</h2>
+      <div class="a09-form">
+        <label class="wide">Imię lub pseudonim trenera<input id="a09CoachName" maxlength="50" placeholder="Np. Trener A"></label>
+      </div>
+      <button class="action" id="a09AddCoach">Dodaj trenera testowego</button>
+      <div class="a09-list" id="a09Coaches"></div>
+      <div class="a09-message" id="a09Message" role="status">Wybierz zawodnika w panelu trenera 0.8, aby przypisać go do grupy.</div>
+    </div>
+  </div>
+  <div class="a09-grid">
+    <div class="academy09-card">
+      <h2>Zadania grupowe</h2>
+      <div class="a09-form">
+        <label>Grupa<select id="a09TaskGroup"></select></label>
+        <label>Zadanie<select id="a09TaskType"><option value="mate">Mat w jednym</option><option value="fork">Widełki</option><option value="defense">Bezpieczna obrona</option><option value="review">Analiza własnej partii</option></select></label>
+        <label>Termin wykonania<input id="a09TaskDue" type="date"></label>
+        <label>XP za ukończenie<input id="a09TaskXp" type="number" min="1" max="50" value="5"></label>
+      </div>
+      <button class="action" id="a09AssignGroupTask">Przydziel zadanie grupie</button>
+      <div class="a09-list" id="a09GroupTasks"></div>
+    </div>
+    <div class="academy09-card">
+      <h2>Kalendarz treningów</h2>
+      <div class="a09-form">
+        <label>Data i godzina<input id="a09SessionDate" type="datetime-local"></label>
+        <label>Grupa<select id="a09SessionGroup"></select></label>
+        <label class="wide">Temat zajęć<input id="a09SessionTopic" maxlength="90" placeholder="Np. Matowanie wieżą i hetmanem"></label>
+        <label class="wide">Trener<select id="a09SessionCoach"></select></label>
+      </div>
+      <button class="action" id="a09AddSession">Dodaj trening do kalendarza</button>
+      <div class="a09-list" id="a09Sessions"></div>
+    </div>
+  </div>
+  <div class="academy09-card">
+    <h2>Ranking Akademii</h2>
+    <p class="note">Ranking demonstracyjny na podstawie XP zapisanych w panelu trenera. Nie pobiera wyników z urządzeń zawodników.</p>
+    <div class="roster-wrap"><table class="a09-rank"><thead><tr><th>#</th><th>Zawodnik</th><th>Grupa</th><th>Poziom</th><th>XP</th><th>Ukończone zadania</th></tr></thead><tbody id="a09Ranking"></tbody></table></div>
+  </div>
+</section>
+
+<footer>SPARTA 64 · Prototyp 0.9 · Panel trenera demonstracyjny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -487,10 +575,104 @@
   $("completeTask").addEventListener("click",()=>{const a=selectedAthlete(),x=a&&a.assignments.find(t=>t.id===selectedAssignmentId);if(!x||x.done)return;const reward=Math.max(1,Math.min(50,Number($("coachXpReward").value)||5));x.done=true;a.xp+=reward;selectedAssignmentId=null;saveCoach();renderCoach();$("coachMessage").textContent=`Oznaczono zadanie jako ukończone. ${a.name} otrzymuje ${reward} XP. To ręczne potwierdzenie trenera, nie wynik z konta zawodnika.`;});
   renderCoach();
 
+  // Struktura Akademii 0.9 — lokalny model danych przygotowany do późniejszej migracji do API.
+  const a09Key="sparta64_academy_structure_v09";
+  const a09Defaults={
+    coaches:[{id:"coach_demo_1",name:"Trener główny"},{id:"coach_demo_2",name:"Trener wspierający"}],
+    groups:[
+      {id:"group_beginner",name:"Początkujący",level:"Początkujący",coachId:"coach_demo_1"},
+      {id:"group_basic",name:"Grupa podstawowa",level:"Podstawowy",coachId:"coach_demo_2"},
+      {id:"group_advanced",name:"Grupa zaawansowana",level:"Zaawansowany",coachId:"coach_demo_1"}
+    ],
+    memberships:{demo01:"group_beginner",demo02:"group_basic",demo03:"group_basic",demo04:"group_beginner",demo05:"group_advanced"},
+    groupTasks:[],sessions:[]
+  };
+  let a09Data;
+  try{
+    const saved=JSON.parse(localStorage.getItem(a09Key)||"null");
+    a09Data=saved&&typeof saved==="object"?{...a09Defaults,...saved,coaches:Array.isArray(saved.coaches)?saved.coaches:a09Defaults.coaches,groups:Array.isArray(saved.groups)?saved.groups:a09Defaults.groups,groupTasks:Array.isArray(saved.groupTasks)?saved.groupTasks:[],sessions:Array.isArray(saved.sessions)?saved.sessions:[],memberships:saved.memberships||a09Defaults.memberships}:JSON.parse(JSON.stringify(a09Defaults));
+  }catch(e){a09Data=JSON.parse(JSON.stringify(a09Defaults));}
+  const a09=id=>document.getElementById(id);
+  const a09Esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const a09Group=id=>a09Data.groups.find(g=>g.id===id);
+  const a09Coach=id=>a09Data.coaches.find(c=>c.id===id);
+  function saveA09(){try{localStorage.setItem(a09Key,JSON.stringify(a09Data));}catch(e){a09("a09Message").textContent="Nie udało się zapisać danych lokalnych.";}}
+  function refreshA09Selects(){
+    const groupOptions=a09Data.groups.map(g=>`<option value="${a09Esc(g.id)}">${a09Esc(g.name)}</option>`).join("");
+    ["a09MembershipGroup","a09TaskGroup","a09SessionGroup"].forEach(id=>{const el=a09(id),old=el.value;el.innerHTML=groupOptions||'<option value="">Najpierw utwórz grupę</option>';if([...el.options].some(o=>o.value===old))el.value=old;});
+    const coachOptions=a09Data.coaches.map(c=>`<option value="${a09Esc(c.id)}">${a09Esc(c.name)}</option>`).join("");
+    ["a09GroupCoach","a09SessionCoach"].forEach(id=>{const el=a09(id),old=el.value;el.innerHTML=coachOptions||'<option value="">Najpierw dodaj trenera</option>';if([...el.options].some(o=>o.value===old))el.value=old;});
+  }
+  function renderA09(){
+    refreshA09Selects();
+    a09("a09GroupCount").textContent=a09Data.groups.length;
+    a09("a09CoachCount").textContent=a09Data.coaches.length;
+    a09("a09SessionCount").textContent=a09Data.sessions.length;
+    a09("a09Groups").innerHTML=a09Data.groups.map(g=>{
+      const members=coachData.filter(p=>a09Data.memberships[p.id]===g.id);
+      const coach=a09Coach(g.coachId);
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(g.name)}</strong><span class="pill">${members.length} zawodników</span></div><p>${a09Esc(g.level)} · Trener: ${a09Esc(coach?coach.name:"Nieprzypisany")}</p><p>${members.length?members.map(p=>a09Esc(p.name)).join(", "):"Brak przypisanych zawodników."}</p><label class="a09-mini">Zmień trenera <select data-group-coach="${a09Esc(g.id)}">${a09Data.coaches.map(c=>`<option value="${a09Esc(c.id)}" ${c.id===g.coachId?"selected":""}>${a09Esc(c.name)}</option>`).join("")}</select></label></div>`;
+    }).join("")||'<p class="note">Nie ma jeszcze grup. Utwórz pierwszą grupę.</p>';
+    a09("a09Groups").querySelectorAll("[data-group-coach]").forEach(sel=>sel.addEventListener("change",()=>{const g=a09Group(sel.dataset.groupCoach);if(g){g.coachId=sel.value;saveA09();renderA09();}}));
+    a09("a09Coaches").innerHTML=a09Data.coaches.map(c=>{
+      const groups=a09Data.groups.filter(g=>g.coachId===c.id);
+      return `<div class="a09-item"><strong>${a09Esc(c.name)}</strong><p>Prowadzi grupy: ${groups.length?groups.map(g=>a09Esc(g.name)).join(", "):"brak"}</p></div>`;
+    }).join("")||'<p class="note">Brak trenerów.</p>';
+    a09("a09GroupTasks").innerHTML=a09Data.groupTasks.slice().sort((x,y)=>y.created.localeCompare(x.created)).map(t=>{
+      const g=a09Group(t.groupId),members=coachData.filter(p=>a09Data.memberships[p.id]===t.groupId);
+      const completed=(t.doneAthleteIds||[]).length;
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(taskNames[t.type]||t.type)}</strong><span class="pill">${completed}/${members.length} ukończone</span></div><p>Grupa: ${a09Esc(g?g.name:"usunięta grupa")} · Termin: ${t.due?new Date(t.due+"T12:00:00").toLocaleDateString("pl-PL"):"bez terminu"} · Nagroda: ${t.xp} XP</p><label class="a09-mini">Zaliczyć wybranemu zawodnikowi <select data-task-athlete="${a09Esc(t.id)}"><option value="">Wybierz zawodnika grupy</option>${members.map(m=>`<option value="${a09Esc(m.id)}">${a09Esc(m.name)}</option>`).join("")}</select></label> <button class="action secondary" type="button" data-task-complete="${a09Esc(t.id)}">Zalicz</button><p class="a09-mini">${completed?`Ukończyli: ${members.filter(m=>(t.doneAthleteIds||[]).includes(m.id)).map(m=>a09Esc(m.name)).join(", ")}`:"Jeszcze nikt nie ukończył."}</p></div>`;
+    }).join("")||'<p class="note">Brak zadań grupowych.</p>';
+    a09("a09GroupTasks").querySelectorAll("[data-task-complete]").forEach(btn=>btn.addEventListener("click",()=>{
+      const task=a09Data.groupTasks.find(t=>t.id===btn.dataset.taskComplete),select=a09("a09GroupTasks").querySelector(`[data-task-athlete="${btn.dataset.taskComplete}"]`),athlete=coachData.find(p=>p.id===select?.value);
+      if(!task||!athlete){a09("a09Message").textContent="Wybierz zawodnika z tej grupy.";return;}
+      task.doneAthleteIds=task.doneAthleteIds||[];
+      if(task.doneAthleteIds.includes(athlete.id)){a09("a09Message").textContent="To zadanie jest już zaliczone temu zawodnikowi.";return;}
+      task.doneAthleteIds.push(athlete.id);athlete.xp+=Number(task.xp)||5;
+      saveA09();saveCoach();renderA09();renderCoach();a09("a09Message").textContent=`Zaliczone: ${athlete.name} otrzymuje ${task.xp} XP.`;
+    }));
+    a09("a09Sessions").innerHTML=a09Data.sessions.slice().sort((x,y)=>x.date.localeCompare(y.date)).map(s=>{
+      const g=a09Group(s.groupId),c=a09Coach(s.coachId);
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(s.topic)}</strong><span class="pill">${new Date(s.date).toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${a09Esc(g?g.name:"usunięta grupa")} · ${a09Esc(c?c.name:"Nieprzypisany trener")}</p><button class="action secondary" type="button" data-session-delete="${a09Esc(s.id)}">Usuń termin</button></div>`;
+    }).join("")||'<p class="note">Kalendarz jest pusty. Dodaj pierwszy trening.</p>';
+    a09("a09Sessions").querySelectorAll("[data-session-delete]").forEach(btn=>btn.addEventListener("click",()=>{a09Data.sessions=a09Data.sessions.filter(s=>s.id!==btn.dataset.sessionDelete);saveA09();renderA09();}));
+    const ranked=coachData.slice().sort((x,y)=>y.xp-x.xp);
+    a09("a09Ranking").innerHTML=ranked.map((p,i)=>{const g=a09Group(a09Data.memberships[p.id]);return `<tr><td>${i+1}</td><td>${a09Esc(p.name)}</td><td>${a09Esc(g?g.name:"Bez grupy")}</td><td>${a09Esc(p.level)}</td><td><strong>${p.xp}</strong></td><td>${p.assignments.filter(t=>t.done).length+(a09Data.groupTasks.reduce((n,t)=>n+((t.doneAthleteIds||[]).includes(p.id)?1:0),0))}</td></tr>`;}).join("")||'<tr><td colspan="6">Brak zawodników.</td></tr>';
+  }
+  a09("a09AddCoach").addEventListener("click",()=>{
+    const name=a09("a09CoachName").value.trim();if(!name){a09("a09Message").textContent="Wpisz nazwę lub pseudonim trenera.";return;}
+    if(a09Data.coaches.some(c=>c.name.toLocaleLowerCase("pl")===name.toLocaleLowerCase("pl"))){a09("a09Message").textContent="Taki trener już istnieje.";return;}
+    a09Data.coaches.push({id:"coach_"+Date.now(),name});a09("a09CoachName").value="";saveA09();renderA09();a09("a09Message").textContent="Dodano trenera testowego.";
+  });
+  a09("a09AddGroup").addEventListener("click",()=>{
+    const name=a09("a09GroupName").value.trim();if(!name){a09("a09Message").textContent="Podaj nazwę grupy.";return;}
+    if(!a09Data.coaches.length){a09("a09Message").textContent="Najpierw dodaj trenera.";return;}
+    a09Data.groups.push({id:"group_"+Date.now(),name,level:a09("a09GroupLevel").value,coachId:a09("a09GroupCoach").value});a09("a09GroupName").value="";saveA09();renderA09();a09("a09Message").textContent="Utworzono grupę.";
+  });
+  a09("a09AssignMember").addEventListener("click",()=>{
+    const athlete=selectedAthlete(),group=a09Group(a09("a09MembershipGroup").value);
+    if(!athlete){a09("a09Message").textContent="Najpierw wybierz zawodnika w panelu trenera 0.8.";return;}
+    if(!group){a09("a09Message").textContent="Najpierw utwórz grupę.";return;}
+    a09Data.memberships[athlete.id]=group.id;saveA09();renderA09();a09("a09Message").textContent=`${athlete.name} przypisany do grupy ${group.name}.`;
+  });
+  a09("a09AssignGroupTask").addEventListener("click",()=>{
+    const group=a09Group(a09("a09TaskGroup").value),members=group?coachData.filter(p=>a09Data.memberships[p.id]===group.id):[];
+    if(!group){a09("a09Message").textContent="Najpierw utwórz grupę.";return;}
+    if(!members.length){a09("a09Message").textContent="Ta grupa nie ma jeszcze zawodników.";return;}
+    a09Data.groupTasks.push({id:"grouptask_"+Date.now(),groupId:group.id,type:a09("a09TaskType").value,due:a09("a09TaskDue").value,xp:Math.max(1,Math.min(50,Number(a09("a09TaskXp").value)||5)),created:new Date().toISOString(),doneAthleteIds:[]});
+    saveA09();renderA09();a09("a09Message").textContent=`Przydzielono zadanie grupie ${group.name}.`;
+  });
+  a09("a09AddSession").addEventListener("click",()=>{
+    const date=a09("a09SessionDate").value,topic=a09("a09SessionTopic").value.trim(),group=a09Group(a09("a09SessionGroup").value);
+    if(!date||!topic||!group){a09("a09Message").textContent="Uzupełnij datę, temat i grupę treningu.";return;}
+    a09Data.sessions.push({id:"session_"+Date.now(),date,topic,groupId:group.id,coachId:a09("a09SessionCoach").value});saveA09();a09("a09SessionTopic").value="";renderA09();a09("a09Message").textContent="Dodano trening do kalendarza.";
+  });
+  renderA09();
+
   document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
   render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
 })();
 </script>
 </body>
-  </html> 
+             </html> 
