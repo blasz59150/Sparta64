@@ -69,7 +69,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.9</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 1.0</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -139,7 +139,7 @@
 </section>
 <section class="coach-section" aria-labelledby="coachTitle">
   <div class="coach-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 id="coachTitle">Panel trenera</h2><span class="pill">PROTOTYP 0.9</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 id="coachTitle">Panel trenera</h2><span class="pill">PROTOTYP 1.0</span></div>
     <p class="note">Demonstracyjny dziennik pracy trenera. Dane są zapisywane wyłącznie w pamięci tej przeglądarki — nie są wysyłane do klubu ani synchronizowane między urządzeniami. Używaj wyłącznie pseudonimów i danych testowych.</p>
     <div class="coach-stat"><div class="stat"><strong id="coachPlayersCount">0</strong><span class="note">Zawodnicy</span></div><div class="stat"><strong id="coachAssignmentsCount">0</strong><span class="note">Przydzielone zadania</span></div><div class="stat"><strong id="coachCompletedCount">0</strong><span class="note">Ukończone</span></div></div>
     <div class="coach-grid"><div>
@@ -163,8 +163,17 @@
 
 <section class="academy09" aria-labelledby="academy09Title">
   <div class="academy09-card">
-    <div class="a09-item-head"><h2 id="academy09Title">Struktura Akademii · 0.9</h2><span class="pill">LOKALNY PROTOTYP</span></div>
-    <p class="note">Grupy, trenerzy, zadania grupowe i kalendarz. Dane są przechowywane lokalnie w tej przeglądarce. To etap przygotowawczy — nie ma jeszcze synchronizacji między trenerami ani prawdziwych kont.</p>
+    <div class="a09-item-head"><h2 id="academy09Title">Struktura Akademii · 1.0</h2><span class="pill">KOPIA ZAPASOWA</span></div>
+    <p class="note">Grupy, trenerzy, zadania grupowe i kalendarz. Dane są przechowywane lokalnie w tej przeglądarce. Wersja 1.0 pozwala wykonać kopię zapasową i odtworzyć ją na innym urządzeniu.</p>
+    <div class="a09-item" style="margin-top:14px">
+      <h3>Bezpieczeństwo danych Akademii</h3>
+      <p class="note">Eksport obejmuje profil, listę zawodników i ich zadania, grupy, trenerów, przypisania, zadania grupowe oraz kalendarz.</p>
+      <div class="a09-form">
+        <button class="action" id="a10Export" type="button">Pobierz kopię zapasową JSON</button>
+        <label class="wide">Odtwórz dane z pliku JSON<input id="a10ImportFile" type="file" accept=".json,application/json"></label>
+      </div>
+      <div class="a09-message" id="a10Message" role="status" aria-live="polite">Zalecamy pobierać kopię po każdej większej zmianie w Akademii.</div>
+    </div>
     <div class="coach-stat">
       <div class="stat"><strong id="a09GroupCount">0</strong><span class="note">Grupy</span></div>
       <div class="stat"><strong id="a09CoachCount">0</strong><span class="note">Trenerzy</span></div>
@@ -228,7 +237,7 @@
   </div>
 </section>
 
-<footer>SPARTA 64 · Prototyp 0.9 · Panel trenera demonstracyjny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<footer>SPARTA 64 · Prototyp 1.0 · Panel trenera demonstracyjny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -669,10 +678,48 @@
   });
   renderA09();
 
+  // Kopia zapasowa 1.0: eksport/import wszystkich lokalnych danych Akademii.
+  const backupKeys={profile:academyKey,players:coachKey,structure:a09Key};
+  function readBackupData(){
+    const data={};
+    for(const [name,key] of Object.entries(backupKeys)){
+      const raw=localStorage.getItem(key);
+      data[name]=raw===null?null:JSON.parse(raw);
+    }
+    return data;
+  }
+  a09("a10Export").addEventListener("click",()=>{
+    try{
+      const backup={format:"SPARTA64_BACKUP",version:1,createdAt:new Date().toISOString(),data:readBackupData()};
+      const blob=new Blob([JSON.stringify(backup,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download=`SPARTA64_kopia_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      a09("a10Message").textContent="Kopia zapasowa została przygotowana. Zachowaj pobrany plik w bezpiecznym miejscu.";
+    }catch(e){a09("a10Message").textContent="Nie udało się przygotować kopii. Sprawdź, czy pamięć przeglądarki jest dostępna.";}
+  });
+  a09("a10ImportFile").addEventListener("change",async event=>{
+    const file=event.target.files&&event.target.files[0];if(!file)return;
+    try{
+      const backup=JSON.parse(await file.text());
+      if(backup.format!=="SPARTA64_BACKUP"||backup.version!==1||!backup.data||typeof backup.data!=="object")throw new Error("format");
+      const d=backup.data;
+      if(d.profile!==null&&(!d.profile||typeof d.profile!=="object"||Array.isArray(d.profile)))throw new Error("profile");
+      if(d.players!==null&&!Array.isArray(d.players))throw new Error("players");
+      if(d.structure!==null&&(!d.structure||typeof d.structure!=="object"||Array.isArray(d.structure)))throw new Error("structure");
+      if(!confirm("Odtworzyć dane z kopii? Aktualne lokalne dane profilu, zawodników i Akademii zostaną zastąpione zawartością pliku.")){event.target.value="";return;}
+      for(const [name,key] of Object.entries(backupKeys)){
+        if(d[name]===null)localStorage.removeItem(key);else localStorage.setItem(key,JSON.stringify(d[name]));
+      }
+      a09("a10Message").textContent="Dane odtworzone. Strona zostanie odświeżona.";
+      setTimeout(()=>location.reload(),700);
+    }catch(e){a09("a10Message").textContent="Nieprawidłowy plik kopii SPARTA 64. Żadne dane nie zostały zmienione.";event.target.value="";}
+  });
+
   document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
   render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
 })();
 </script>
 </body>
-             </html> 
+</html>
