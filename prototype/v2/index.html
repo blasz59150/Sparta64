@@ -88,6 +88,8 @@
     #spartaSession button{border:0;border-radius:7px;padding:8px 12px;background:#a92e32;color:white;font-weight:700}
     @media(max-width:520px){#spartaAuth .auth-card{padding:21px}#spartaSession{margin:10px 12px}}
 
+    /* Wymusza respektowanie atrybutu HTML hidden także dla elementów z własnym display:flex/grid. */
+    [hidden]{display:none!important}
   </style>
 </head>
 <body class="auth-locked">
