@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#17191d">
-  <title>SPARTA 64 — Szachownica treningowa</title>
+  <title>SPARTA 64 — Akademia szachowa</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <style>
     :root{--bg:#f4f1e9;--card:#fffdf8;--ink:#25282d;--muted:#70757d;--red:#a92e32;--gold:#c5a45b;--light:#eee7d8;--dark:#aeb7ad;--line:#e6e0d5}
@@ -38,6 +38,8 @@
     .tsq.light{background:#f0e8d8}.tsq.dark{background:#aeb8aa}.tsq.selected{box-shadow:inset 0 0 0 3px #d6a83e}.tsq.target:after{content:"";position:absolute;width:22%;height:22%;border-radius:50%;background:#b8872c99}.tsq.hint{box-shadow:inset 0 0 0 4px #d6a83e}
     #trainerMessage{min-height:48px;padding:9px;background:#fffdf8;border-radius:8px;font-size:13px;margin:8px 0}
     .academy{max-width:1050px;margin:0 auto 24px;padding:0 16px}.academy-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.academy-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}.profile-row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}.profile-row label{flex:1;min-width:170px;font-size:12px;color:var(--muted)}.profile-row input{display:block;width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font:inherit;margin-top:4px}.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.stat{background:#f8f5ee;padding:10px;border-radius:10px;text-align:center}.stat strong{display:block;font-size:22px;color:var(--red)}.badge-list,.library-list{display:grid;gap:8px;margin-top:10px}.badge-item,.library-item{padding:10px;border-radius:10px;background:#f8f5ee;border:1px solid var(--line)}.badge-item.locked{opacity:.45;filter:grayscale(1)}.badge-title{font-weight:700}.library-item{display:flex;justify-content:space-between;align-items:center;gap:10px}.library-item p{margin:3px 0 0;font-size:12px;color:var(--muted)}.levelbar{height:9px;background:#eee9df;border-radius:20px;overflow:hidden;margin-top:8px}.levelbar span{display:block;height:100%;background:var(--gold);width:0%}
+    .coach-section{max-width:1050px;margin:0 auto 26px;padding:0 16px}.coach-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}.coach-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px}.coach-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.coach-controls label{font-size:12px;color:var(--muted)}.coach-controls input,.coach-controls select{display:block;width:100%;min-width:0;margin-top:4px;padding:10px;border:1px solid var(--line);border-radius:9px;background:white;font:inherit;color:var(--ink)}.roster-wrap{overflow:auto}.roster{width:100%;border-collapse:collapse;font-size:13px}.roster th,.roster td{text-align:left;padding:9px 7px;border-bottom:1px solid var(--line);white-space:nowrap}.roster th{color:var(--muted);font-weight:650}.roster tr.active{background:#f5e9c9}.roster button{padding:6px 9px;border:0;border-radius:7px;background:#eee9df;color:var(--ink);font-weight:650}.coach-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.coach-stat .stat strong{font-size:20px}.assignment-list{display:grid;gap:8px;margin-top:10px}.assignment{padding:10px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px;font-size:13px}.assignment small{display:block;color:var(--muted);margin-top:3px}.coach-message{padding:10px;border-radius:9px;background:#f3eee3;font-size:13px;margin-top:10px;min-height:40px}
+    @media(max-width:760px){.coach-grid{grid-template-columns:1fr}.coach-card{padding:13px}}
     @media(max-width:760px){.academy-grid{grid-template-columns:1fr}.academy-card{padding:13px}}
     @media(max-width:760px){main{grid-template-columns:1fr;margin-top:15px}.panel{padding:13px}.move-list{height:120px}}
     @media(max-width:380px){.settings{grid-template-columns:1fr}}
@@ -47,7 +49,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.7</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 0.8</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -115,7 +117,30 @@
     </div>
   </div>
 </section>
-<footer>SPARTA 64 · Prototyp 0.7 · Raport treningowy Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<section class="coach-section" aria-labelledby="coachTitle">
+  <div class="coach-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h2 id="coachTitle">Panel trenera</h2><span class="pill">PROTOTYP 0.8</span></div>
+    <p class="note">Demonstracyjny dziennik pracy trenera. Dane są zapisywane wyłącznie w pamięci tej przeglądarki — nie są wysyłane do klubu ani synchronizowane między urządzeniami. Używaj wyłącznie pseudonimów i danych testowych.</p>
+    <div class="coach-stat"><div class="stat"><strong id="coachPlayersCount">0</strong><span class="note">Zawodnicy</span></div><div class="stat"><strong id="coachAssignmentsCount">0</strong><span class="note">Przydzielone zadania</span></div><div class="stat"><strong id="coachCompletedCount">0</strong><span class="note">Ukończone</span></div></div>
+    <div class="coach-grid"><div>
+      <h3>Lista zawodników</h3><div class="coach-controls">
+        <label>Szukaj zawodnika<input id="coachSearch" type="search" placeholder="Np. Zawodnik 01"></label>
+        <label>Filtr poziomu<select id="coachFilter"><option value="all">Wszyscy</option><option>Początkujący</option><option>Podstawowy</option><option>Średni</option><option>Zaawansowany</option></select></label>
+      </div>
+      <div class="roster-wrap"><table class="roster"><thead><tr><th>Pseudonim</th><th>Poziom</th><th>XP</th><th>Zadania</th><th></th></tr></thead><tbody id="coachRoster"></tbody></table></div>
+      <div class="coach-controls"><label>Dodaj pseudonim<input id="newAthleteName" maxlength="32" placeholder="Np. Zawodnik 09"></label><label>Poziom<select id="newAthleteLevel"><option>Początkujący</option><option>Podstawowy</option><option>Średni</option><option>Zaawansowany</option></select></label></div>
+      <button class="action" id="addAthlete">Dodaj zawodnika testowego</button>
+    </div><div>
+      <h3>Przydziel zadanie</h3><p class="note" id="selectedAthleteLabel">Wybierz zawodnika z listy.</p>
+      <label class="note" for="coachTaskSelect">Zadanie treningowe</label>
+      <select id="coachTaskSelect" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:white;font:inherit;margin:4px 0 10px"><option value="mate">Mat w jednym — ćwiczenie taktyczne</option><option value="fork">Widełki — atak na dwie figury</option><option value="defense">Bezpieczna obrona — znajdź najlepszą odpowiedź</option><option value="review">Analiza własnej partii — przejrzyj błędy</option></select>
+      <button class="action" id="assignTask">Przydziel zadanie</button><div class="assignment-list" id="coachAssignments"><div class="note">Wybierz zawodnika, aby zobaczyć jego zadania.</div></div>
+      <div class="coach-controls"><label>XP za ukończenie<input id="coachXpReward" type="number" min="1" max="50" value="5"></label><div style="display:flex;align-items:end"><button class="action secondary" id="completeTask" disabled>Oznacz jako ukończone</button></div></div>
+      <div id="coachMessage" class="coach-message" role="status" aria-live="polite">Panel działa w trybie demonstracyjnym.</div>
+    </div></div>
+  </div>
+</section>
+<footer>SPARTA 64 · Prototyp 0.8 · Panel trenera demonstracyjny · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -427,10 +452,45 @@
   }));
   renderAcademy();
 
+  // Panel trenera 0.8 — lokalny prototyp na fikcyjnych pseudonimach.
+  const coachKey="sparta64_coach_demo_v08";
+  const taskNames={mate:"Mat w jednym",fork:"Widełki",defense:"Bezpieczna obrona",review:"Analiza własnej partii"};
+  const demoRoster=[
+    {id:"demo01",name:"Zawodnik 01",level:"Początkujący",xp:15,assignments:[]},
+    {id:"demo02",name:"Zawodnik 02",level:"Podstawowy",xp:40,assignments:[]},
+    {id:"demo03",name:"Zawodnik 03",level:"Średni",xp:75,assignments:[]},
+    {id:"demo04",name:"Zawodnik 04",level:"Początkujący",xp:5,assignments:[]},
+    {id:"demo05",name:"Zawodnik 05",level:"Zaawansowany",xp:120,assignments:[]}
+  ];
+  let coachData=demoRoster,selectedAthleteId=null,selectedAssignmentId=null;
+  try{const saved=JSON.parse(localStorage.getItem(coachKey)||"null");if(Array.isArray(saved))coachData=saved;}catch(e){}
+  const $=id=>document.getElementById(id);
+  function saveCoach(){try{localStorage.setItem(coachKey,JSON.stringify(coachData));}catch(e){$("coachMessage").textContent="Nie udało się zapisać danych w tej przeglądarce.";}}
+  function selectedAthlete(){return coachData.find(a=>a.id===selectedAthleteId)||null;}
+  function renderCoach(){
+    const total=coachData.reduce((n,a)=>n+a.assignments.length,0),done=coachData.reduce((n,a)=>n+a.assignments.filter(x=>x.done).length,0);
+    $("coachPlayersCount").textContent=coachData.length;$("coachAssignmentsCount").textContent=total;$("coachCompletedCount").textContent=done;
+    const q=$("coachSearch").value.trim().toLocaleLowerCase("pl"),filter=$("coachFilter").value;
+    const visible=coachData.filter(a=>(!q||a.name.toLocaleLowerCase("pl").includes(q))&&(filter==="all"||a.level===filter));
+    $("coachRoster").innerHTML=visible.map(a=>`<tr class="${a.id===selectedAthleteId?"active":""}"><td>${escapeCoach(a.name)}</td><td>${a.level}</td><td>${a.xp}</td><td>${a.assignments.filter(x=>x.done).length}/${a.assignments.length}</td><td><button type="button" data-select-athlete="${a.id}">Wybierz</button></td></tr>`).join("")||'<tr><td colspan="5">Brak pasujących zawodników.</td></tr>';
+    $("coachRoster").querySelectorAll("[data-select-athlete]").forEach(b=>b.addEventListener("click",()=>{selectedAthleteId=b.dataset.selectAthlete;selectedAssignmentId=null;renderCoach();}));
+    const a=selectedAthlete();$("selectedAthleteLabel").textContent=a?`Wybrano: ${a.name} · ${a.level} · ${a.xp} XP`:"Wybierz zawodnika z listy.";
+    if(!a){$("coachAssignments").innerHTML='<div class="note">Wybierz zawodnika, aby zobaczyć jego zadania.</div>';$("completeTask").disabled=true;return;}
+    $("coachAssignments").innerHTML=a.assignments.length?a.assignments.map(x=>`<div class="assignment"><label><input type="radio" name="selectedAssignment" value="${x.id}" ${x.id===selectedAssignmentId?"checked":""} ${x.done?"disabled":""}> <strong>${taskNames[x.type]}</strong> ${x.done?"· Ukończone":"· Do wykonania"}</label><small>Przydzielono: ${new Date(x.created).toLocaleDateString("pl-PL")}</small></div>`).join(""):'<div class="note">Brak przydzielonych zadań.</div>';
+    $("coachAssignments").querySelectorAll('input[name="selectedAssignment"]').forEach(r=>r.addEventListener("change",()=>{selectedAssignmentId=r.value;$("completeTask").disabled=false;}));
+    $("completeTask").disabled=!selectedAssignmentId||a.assignments.some(x=>x.id===selectedAssignmentId&&x.done);
+  }
+  function escapeCoach(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+  $("coachSearch").addEventListener("input",renderCoach);$("coachFilter").addEventListener("change",renderCoach);
+  $("addAthlete").addEventListener("click",()=>{const name=$("newAthleteName").value.trim();if(!name){$("coachMessage").textContent="Wpisz pseudonim testowy zawodnika.";return;}if(coachData.some(a=>a.name.toLocaleLowerCase("pl")===name.toLocaleLowerCase("pl"))){$("coachMessage").textContent="Taki pseudonim już istnieje. Wybierz inny.";return;}const id="ath_"+Date.now();coachData.push({id,name,level:$("newAthleteLevel").value,xp:0,assignments:[]});selectedAthleteId=id;selectedAssignmentId=null;$("newAthleteName").value="";saveCoach();renderCoach();$("coachMessage").textContent="Dodano zawodnika testowego.";});
+  $("assignTask").addEventListener("click",()=>{const a=selectedAthlete();if(!a){$("coachMessage").textContent="Najpierw wybierz zawodnika.";return;}const type=$("coachTaskSelect").value;a.assignments.push({id:"task_"+Date.now(),type,created:new Date().toISOString(),done:false});selectedAssignmentId=null;saveCoach();renderCoach();$("coachMessage").textContent=`Przydzielono zadanie „${taskNames[type]}” zawodnikowi ${a.name}.`;});
+  $("completeTask").addEventListener("click",()=>{const a=selectedAthlete(),x=a&&a.assignments.find(t=>t.id===selectedAssignmentId);if(!x||x.done)return;const reward=Math.max(1,Math.min(50,Number($("coachXpReward").value)||5));x.done=true;a.xp+=reward;selectedAssignmentId=null;saveCoach();renderCoach();$("coachMessage").textContent=`Oznaczono zadanie jako ukończone. ${a.name} otrzymuje ${reward} XP. To ręczne potwierdzenie trenera, nie wynik z konta zawodnika.`;});
+  renderCoach();
+
   document.getElementById("analyzeGame").addEventListener("click",analyzeWholeGame);
   opponent.addEventListener("change",()=>{engineState.textContent=opponent.value==="computer"?"Stockfish uruchomi się po rozpoczęciu partii.":"Tryb dwóch graczy.";});
   render();status.textContent="Gotowe. Wybierz tryb gry i kliknij „Nowa partia”.";
 })();
 </script>
 </body>
-</html> 
+  </html> 
