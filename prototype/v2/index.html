@@ -719,11 +719,7 @@
       task.doneAthleteIds.push(athlete.id);athlete.xp+=Number(task.xp)||5;
       saveA09();saveCoach();renderA09();renderCoach();a09("a09Message").textContent=`Zaliczone: ${athlete.name} otrzymuje ${task.xp} XP.`;
     }));
-    a09("a09Sessions").innerHTML=a09Data.sessions.slice().sort((x,y)=>x.date.localeCompare(y.date)).map(s=>{
-      const g=a09Group(s.groupId),c=a09Coach(s.coachId);
-      return `<div class="a09-item"><div class="a09-item-head"><strong>${a09Esc(s.topic)}</strong><span class="pill">${new Date(s.date).toLocaleString("pl-PL",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${a09Esc(g?g.name:"usunięta grupa")} · ${a09Esc(c?c.name:"Nieprzypisany trener")}</p><button class="action secondary" type="button" data-session-delete="${a09Esc(s.id)}">Usuń termin</button></div>`;
-    }).join("")||'<p class="note">Kalendarz jest pusty. Dodaj pierwszy trening.</p>';
-    a09("a09Sessions").querySelectorAll("[data-session-delete]").forEach(btn=>btn.addEventListener("click",()=>{a09Data.sessions=a09Data.sessions.filter(s=>s.id!==btn.dataset.sessionDelete);saveA09();renderA09();}));
+    a09("a09Sessions").innerHTML='<p class="note">Kalendarz online ładuje się po zalogowaniu.</p>';
     const ranked=coachData.slice().sort((x,y)=>y.xp-x.xp);
     a09("a09Ranking").innerHTML=ranked.map((p,i)=>{const g=a09Group(a09Data.memberships[p.id]);return `<tr><td>${i+1}</td><td>${a09Esc(p.name)}</td><td>${a09Esc(g?g.name:"Bez grupy")}</td><td>${a09Esc(p.level)}</td><td><strong>${p.xp}</strong></td><td>${p.assignments.filter(t=>t.done).length+(a09Data.groupTasks.reduce((n,t)=>n+((t.doneAthleteIds||[]).includes(p.id)?1:0),0))}</td></tr>`;}).join("")||'<tr><td colspan="6">Brak zawodników.</td></tr>';
   }
@@ -750,11 +746,7 @@
     a09Data.groupTasks.push({id:"grouptask_"+Date.now(),groupId:group.id,type:a09("a09TaskType").value,due:a09("a09TaskDue").value,xp:Math.max(1,Math.min(50,Number(a09("a09TaskXp").value)||5)),created:new Date().toISOString(),doneAthleteIds:[]});
     saveA09();renderA09();a09("a09Message").textContent=`Przydzielono zadanie grupie ${group.name}.`;
   });
-  a09("a09AddSession").addEventListener("click",()=>{
-    const date=a09("a09SessionDate").value,topic=a09("a09SessionTopic").value.trim(),group=a09Group(a09("a09SessionGroup").value);
-    if(!date||!topic||!group){a09("a09Message").textContent="Uzupełnij datę, temat i grupę treningu.";return;}
-    a09Data.sessions.push({id:"session_"+Date.now(),date,topic,groupId:group.id,coachId:a09("a09SessionCoach").value});saveA09();a09("a09SessionTopic").value="";renderA09();a09("a09Message").textContent="Dodano trening do kalendarza.";
-  });
+  // Kalendarz online jest obsługiwany przez Supabase w drugim skrypcie. 
   renderA09();
 
   // Kopia zapasowa 1.0: eksport/import wszystkich lokalnych danych Akademii.
@@ -812,6 +804,106 @@
   const setMsg=(t)=>{msg.textContent=t;};
   if(!window.supabase){setMsg('Nie udało się załadować biblioteki logowania. Sprawdź połączenie z internetem i odśwież stronę.');return;}
   const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  const calendarList=document.getElementById('a09Sessions');
+  const calendarMessage=document.getElementById('a09Message');
+  let calendarGroups=[],calendarTrainers=[],calendarBusy=false;
+  const escCalendar=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function calendarNote(text){if(calendarMessage)calendarMessage.textContent=text;}
+  function localDateValue(iso){
+    const d=new Date(iso); if(Number.isNaN(d.getTime()))return '—';
+    return d.toLocaleString('pl-PL',{dateStyle:'medium',timeStyle:'short'});
+  }
+  function fillCalendarSelects(){
+    const groupSelect=document.getElementById('a09SessionGroup');
+    const trainerSelect=document.getElementById('a09SessionCoach');
+    const oldGroup=groupSelect.value,oldTrainer=trainerSelect.value;
+    groupSelect.innerHTML=calendarGroups.map(g=>`<option value="${escCalendar(g.id)}">${escCalendar(g.name)} · ${escCalendar(g.level||'')}</option>`).join('')||'<option value="">Brak dostępnych grup</option>';
+    if(calendarGroups.some(g=>g.id===oldGroup))groupSelect.value=oldGroup;
+    const selected=calendarGroups.find(g=>g.id===groupSelect.value);
+    const available=calendarTrainers.filter(t=>!selected||t.id===selected.trainer_id);
+    trainerSelect.innerHTML=available.map(t=>`<option value="${escCalendar(t.id)}">${escCalendar(t.display_name||'Trener')}</option>`).join('')||'<option value="">Brak aktywnego trenera</option>';
+    if(available.some(t=>t.id===oldTrainer))trainerSelect.value=oldTrainer;
+    if(selected?.trainer_id&&available.some(t=>t.id===selected.trainer_id))trainerSelect.value=selected.trainer_id;
+  }
+  async function loadCalendarSetup(){
+    const [{data:groups,error:ge},{data:roleRows,error:re}]=await Promise.all([
+      client.from('training_groups').select('id,name,level,trainer_id').order('name'),
+      client.from('user_roles').select('user_id').eq('role','trainer')
+    ]);
+    if(ge)throw ge;if(re)throw re;
+    calendarGroups=groups||[];
+    const trainerIds=[...new Set((roleRows||[]).map(r=>r.user_id).filter(Boolean))];
+    if(trainerIds.length){
+      const {data:profiles,error:pe}=await client.from('profiles').select('id,display_name,is_active').in('id',trainerIds).eq('is_active',true);
+      if(pe)throw pe;
+      calendarTrainers=(profiles||[]).map(p=>({id:p.id,display_name:p.display_name}));
+    }else calendarTrainers=[];
+    fillCalendarSelects();
+    document.getElementById('a09GroupCount').textContent=calendarGroups.length;
+    document.getElementById('a09CoachCount').textContent=calendarTrainers.length;
+  }
+  async function loadCalendar(force=false){
+    if(!currentProfile||!currentProfile.roles?.some(r=>['admin','trainer'].includes(r))||(calendarBusy&&!force))return;
+    calendarBusy=true;calendarList.innerHTML='<p class="note">Pobieram kalendarz z Supabase…</p>';
+    try{
+      await loadCalendarSetup();
+      const {data:sessions,error}=await client.from('training_sessions')
+        .select('id,title,starts_at,notes,group_id,trainer_id')
+        .order('starts_at',{ascending:true});
+      if(error)throw error;
+      const groupMap=new Map(calendarGroups.map(g=>[g.id,g]));
+      const trainerMap=new Map(calendarTrainers.map(t=>[t.id,t]));
+      document.getElementById('a09SessionCount').textContent=(sessions||[]).length;
+      calendarList.innerHTML=(sessions||[]).map(session=>{
+        const group=groupMap.get(session.group_id),trainer=trainerMap.get(session.trainer_id);
+        return `<div class="a09-item">
+          <div class="a09-item-head"><strong>${escCalendar(session.title||'Trening')}</strong><span class="pill">${escCalendar(localDateValue(session.starts_at))}</span></div>
+          <p>${escCalendar(group?.name||'Grupa niedostępna')} · ${escCalendar(trainer?.display_name||'Trener')}</p>
+          ${session.notes?`<p>${escCalendar(session.notes)}</p>`:''}
+          <button class="action secondary" type="button" data-online-session-delete="${escCalendar(session.id)}">Usuń termin</button>
+        </div>`;
+      }).join('')||'<p class="note">Kalendarz jest pusty. Dodaj pierwszy trening.</p>';
+      calendarList.querySelectorAll('[data-online-session-delete]').forEach(button=>button.addEventListener('click',async()=>{
+        if(!confirm('Usunąć ten termin z kalendarza Akademii?'))return;
+        button.disabled=true;
+        try{
+          const {error}=await client.from('training_sessions').delete().eq('id',button.dataset.onlineSessionDelete);
+          if(error)throw error;
+          calendarNote('Termin został usunięty z kalendarza.');
+          await loadCalendar(true);
+        }catch(e){calendarNote('Nie udało się usunąć terminu: '+(e.message||String(e)));button.disabled=false;}
+      }));
+      calendarNote('Kalendarz jest zsynchronizowany z bazą Akademii.');
+    }catch(e){
+      calendarList.innerHTML='<p class="note">Nie udało się pobrać kalendarza.</p>';
+      calendarNote('Błąd kalendarza: '+(e.message||String(e)));
+    }finally{calendarBusy=false;}
+  }
+  document.getElementById('a09SessionGroup').addEventListener('change',fillCalendarSelects);
+  document.getElementById('a09AddSession').addEventListener('click',async()=>{
+    if(!currentProfile||!currentProfile.roles?.some(r=>['admin','trainer'].includes(r))){calendarNote('Brak uprawnień do zarządzania kalendarzem.');return;}
+    const rawDate=document.getElementById('a09SessionDate').value;
+    const title=document.getElementById('a09SessionTopic').value.trim();
+    const group=calendarGroups.find(g=>g.id===document.getElementById('a09SessionGroup').value);
+    const trainerId=document.getElementById('a09SessionCoach').value;
+    if(!rawDate||!title||!group){calendarNote('Uzupełnij datę, temat i grupę treningu.');return;}
+    if(!group.trainer_id||trainerId!==group.trainer_id){calendarNote('Wybrany trener musi być trenerem prowadzącym tę grupę.');return;}
+    const button=document.getElementById('a09AddSession');button.disabled=true;
+    try{
+      const {error}=await client.from('training_sessions').insert({
+        group_id:group.id,
+        trainer_id:trainerId,
+        title,
+        starts_at:new Date(rawDate).toISOString()
+      });
+      if(error)throw error;
+      document.getElementById('a09SessionTopic').value='';
+      calendarNote('Trening zapisany w Supabase.');
+      await loadCalendar(true);
+    }catch(e){calendarNote('Nie udało się zapisać treningu: '+(e.message||String(e)));}
+    finally{button.disabled=false;}
+  });
+
   let busy=false, currentProfile=null, reviewBusy=false;
   const reviewPanel=document.getElementById('spartaReview');
   const studentPanel=document.getElementById('spartaStudent');
@@ -976,7 +1068,7 @@
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleLabel} · ${profile.xp||0} XP`;
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
     banner.textContent='Konto online jest rozpoznane. Uwaga: moduły szachowe i część danych Akademii w tej wersji nadal działają lokalnie w przeglądarce — nie są jeszcze synchronizowane z bazą.';
-    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(canManage)loadReviews();
+    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(canManage){loadReviews();loadCalendar();}
   }
   async function run(action){if(busy)return;busy=true;document.getElementById('authLogin').disabled=true;document.getElementById('authRegister').disabled=true;
     const email=document.getElementById('authEmail').value.trim();const password=document.getElementById('authPassword').value;
