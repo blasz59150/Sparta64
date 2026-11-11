@@ -89,19 +89,6 @@
     @media(max-width:520px){#spartaAuth .auth-card{padding:21px}#spartaSession{margin:10px 12px}}
 
     /* Wymusza respektowanie atrybutu HTML hidden także dla elementów z własnym display:flex/grid. */
-
-    #spartaStudent{max-width:1050px;margin:14px auto 24px;padding:0 16px}
-    #spartaStudent .student-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
-    #spartaStudent .student-task{padding:12px;margin:9px 0;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}
-    #spartaStudent .student-task-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-    #spartaStudent .student-meta{font-size:12px;color:var(--muted);margin-top:5px}
-    #spartaStudent .student-status{display:inline-block;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700;background:#eee9df}
-    #spartaStudent .student-status.pending{background:#fff0c9;color:#74530c}
-    #spartaStudent .student-status.approved{background:#dcefe2;color:#246b43}
-    #spartaStudent .student-status.rejected{background:#f3e1df;color:#8b2929}
-    #spartaStudent .student-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap}
-    @media(max-width:760px){#spartaStudent .student-card{padding:13px}}
-
     [hidden]{display:none!important}
   </style>
 </head>
@@ -121,17 +108,6 @@
   </section>
 </div>
 <div id="spartaSession" hidden><span id="sessionLabel"></span><button id="authLogout">Wyloguj</button></div>
-
-<section id="spartaStudent" hidden>
-  <div class="student-card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-      <div><h2 style="margin:0">Moja Akademia · zadania</h2><div class="note">Zadania przypisane do Twoich grup treningowych.</div></div>
-      <button class="action secondary" id="studentRefresh" type="button">Odśwież zadania</button>
-    </div>
-    <div id="studentTaskList" aria-live="polite" style="margin-top:12px"><div class="note">Ładowanie zadań…</div></div>
-    <div id="studentMessage" class="student-message" role="status">Tutaj zobaczysz swoje zadania i zgłoszenia.</div>
-  </div>
-</section>
 
 <div id="spartaReview" hidden>
   <section class="review-card">
@@ -814,10 +790,6 @@
   const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
   let busy=false, currentProfile=null, reviewBusy=false;
   const reviewPanel=document.getElementById('spartaReview');
-  const studentPanel=document.getElementById('spartaStudent');
-  const studentTaskList=document.getElementById('studentTaskList');
-  const studentMessage=document.getElementById('studentMessage');
-  let studentBusy=false;
   const reviewList=document.getElementById('reviewList');
   const reviewMessage=document.getElementById('reviewMessage');
   const escReview=(v)=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
@@ -861,91 +833,14 @@
     }catch(e){reviewMessage.textContent='Nie udało się rozpatrzyć zgłoszenia: '+(e.message||String(e));if(button)button.disabled=false;}
   }
   document.getElementById('reviewRefresh').addEventListener('click',loadReviews);
-
-  const escStudent=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  async function loadStudentTasks(){
-    if(!currentProfile || currentProfile.role!=='player' || studentBusy)return;
-    studentBusy=true;
-    studentTaskList.innerHTML='<div class="note">Pobieram zadania…</div>';
-    try{
-      const {data:members,error:me}=await client.from('group_members').select('group_id').eq('player_id',(await client.auth.getUser()).data.user.id);
-      if(me)throw me;
-      const groupIds=[...new Set((members||[]).map(x=>x.group_id))];
-      if(!groupIds.length){
-        studentTaskList.innerHTML='<div class="note">Nie jesteś jeszcze przypisany do żadnej grupy. Poproś trenera o przypisanie.</div>';
-        studentMessage.textContent='Brak przypisanych grup.';
-        return;
-      }
-      const {data:tasks,error:te}=await client.from('tasks').select('id,title,description,xp_reward,due_date,group_id').in('group_id',groupIds).order('due_date',{ascending:true});
-      if(te)throw te;
-      if(!tasks?.length){
-        studentTaskList.innerHTML='<div class="note">Twoja grupa nie ma jeszcze przydzielonych zadań.</div>';
-        studentMessage.textContent='Zadania pojawią się tutaj, gdy trener je przydzieli.';
-        return;
-      }
-      const taskIds=tasks.map(t=>t.id);
-      const {data:completions,error:ce}=await client.from('task_completions').select('id,task_id,status,completed_at,xp_awarded').eq('player_id',(await client.auth.getUser()).data.user.id).in('task_id',taskIds);
-      if(ce)throw ce;
-      const latest=new Map();
-      (completions||[]).forEach(c=>{
-        const old=latest.get(c.task_id);
-        if(!old || new Date(c.completed_at)>new Date(old.completed_at))latest.set(c.task_id,c);
-      });
-      studentTaskList.innerHTML='';
-      tasks.forEach(task=>{
-        const completion=latest.get(task.id);
-        const status=completion?.status||'not_sent';
-        const labels={not_sent:'Do wykonania',pending:'Oczekuje na trenera',approved:'Zaliczone',rejected:'Odrzucone · możesz poprawić'};
-        const row=document.createElement('div');row.className='student-task';
-        const head=document.createElement('div');head.className='student-task-head';
-        const title=document.createElement('strong');title.textContent=task.title||'Zadanie';
-        const badge=document.createElement('span');badge.className='student-status '+status;badge.textContent=labels[status]||status;
-        head.append(title,badge);row.append(head);
-        if(task.description){const desc=document.createElement('div');desc.className='student-meta';desc.textContent=task.description;row.append(desc);}
-        const meta=document.createElement('div');meta.className='student-meta';
-        meta.textContent=`Nagroda: ${Number(task.xp_reward||0)} XP${task.due_date?' · Termin: '+task.due_date:''}`;
-        row.append(meta);
-        if(completion?.status==='approved'){
-          const awarded=document.createElement('div');awarded.className='student-meta';awarded.textContent=`Przyznano: ${Number(completion.xp_awarded||0)} XP`;row.append(awarded);
-        } else if(status!=='pending'){
-          const btn=document.createElement('button');btn.type='button';btn.className='action';btn.style.marginTop='9px';
-          btn.textContent=status==='rejected'?'Zgłoś poprawione zadanie':'Zgłoś wykonanie';
-          btn.addEventListener('click',()=>submitStudentTask(task.id,btn));
-          row.append(btn);
-        }
-        studentTaskList.append(row);
-      });
-      studentMessage.textContent=`Zadań w Twoich grupach: ${tasks.length}. Statusy są pobierane z bazy Akademii.`;
-    }catch(e){
-      studentTaskList.innerHTML='<div class="note">Nie udało się pobrać zadań.</div>';
-      studentMessage.textContent='Błąd: '+(e.message||String(e));
-    }finally{studentBusy=false;}
-  }
-  async function submitStudentTask(taskId,button){
-    if(button)button.disabled=true;
-    try{
-      const {data:userData,error:ue}=await client.auth.getUser();
-      if(ue)throw ue;
-      if(!userData?.user)throw new Error('Sesja wygasła. Zaloguj się ponownie.');
-      const {error}=await client.from('task_completions').insert({task_id:taskId,player_id:userData.user.id});
-      if(error)throw error;
-      studentMessage.textContent='Zgłoszenie wysłane! Trener zobaczy je w swoim panelu.';
-      await loadStudentTasks();
-    }catch(e){
-      studentMessage.textContent='Nie udało się wysłać zgłoszenia: '+(e.message||String(e));
-      if(button)button.disabled=false;
-    }
-  }
-  document.getElementById('studentRefresh').addEventListener('click',loadStudentTasks);
-
   async function enter(session){
-    if(!session){currentProfile=null;reviewPanel.hidden=true;studentPanel.hidden=true;document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;return;}
+    if(!session){currentProfile=null;reviewPanel.hidden=true;document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;return;}
     setMsg('Sprawdzam uprawnienia konta…');
     const {data:profile,error}=await client.from('profiles').select('display_name,role,xp').eq('id',session.user.id).single();
     if(error||!profile){await client.auth.signOut();document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;setMsg('Zalogowano, ale nie udało się odczytać profilu zawodnika. Sprawdź tabelę profiles i jej polityki RLS.\n'+(error?.message||''));return;}
     currentProfile=profile;
     gate.hidden=true;document.body.classList.remove('auth-locked');sessionBar.hidden=false;
-    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);\n    studentPanel.hidden=profile.role!=='player';\n    if(profile.role==='player')loadStudentTasks();
+    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleNames[profile.role]||profile.role} · ${profile.xp||0} XP`;
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
