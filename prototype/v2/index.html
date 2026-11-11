@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="pl">
 <head>
@@ -946,7 +945,9 @@
     if(error||!profile){await client.auth.signOut();document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;setMsg('Zalogowano, ale nie udało się odczytać profilu zawodnika. Sprawdź tabelę profiles i jej polityki RLS.\n'+(error?.message||''));return;}
     currentProfile=profile;
     gate.hidden=true;document.body.classList.remove('auth-locked');sessionBar.hidden=false;
-    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);\n    studentPanel.hidden=profile.role!=='player';\n    if(profile.role==='player')loadStudentTasks();
+    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);
+    studentPanel.hidden=profile.role!=='player';
+    if(profile.role==='player')loadStudentTasks();
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleNames[profile.role]||profile.role} · ${profile.xp||0} XP`;
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
