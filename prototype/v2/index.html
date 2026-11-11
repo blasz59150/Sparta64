@@ -100,6 +100,7 @@
     #spartaStudent .student-status.approved{background:#dcefe2;color:#246b43}
     #spartaStudent .student-status.rejected{background:#f3e1df;color:#8b2929}
     #spartaStudent .student-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap}
+    .student-group-info{margin:12px 0;padding:12px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}.student-group-info .group-line{margin-top:6px;font-size:13px}.student-group-info strong{display:block}
     @media(max-width:760px){#spartaStudent .student-card{padding:13px}}
 
     [hidden]{display:none!important}
@@ -203,7 +204,7 @@
       <div class="stat-grid"><div class="stat"><strong id="academyXp">0</strong><span class="note">Punkty XP</span></div><div class="stat"><strong id="academyLevel">1</strong><span class="note">Poziom</span></div><div class="stat"><strong id="academySolved">0</strong><span class="note">Rozwiązane</span></div></div>
       <p class="note" id="academyLevelName">Początkujący</p><div class="levelbar"><span id="academyLevelBar"></span></div>
       <h3>Odznaki</h3><div id="academyBadges" class="badge-list"></div>
-      <p class="note">Profil demonstracyjny zapisuje się tylko w pamięci tej przeglądarki na tym urządzeniu. Nie jest jeszcze kontem klubowym.</p>
+      <div id="studentGroupInfo" class="student-group-info" aria-live="polite"><strong>Przynależność klubowa</strong><div class="note">Ładowanie grupy i trenera…</div></div><p class="note">Pseudonim i statystyki taktyczne są lokalne. Przynależność do grup i trener prowadzący są pobierani z konta Akademii.</p>
     </div>
     <div class="academy-card">
       <h2>Biblioteka zadań</h2>
@@ -1103,9 +1104,19 @@
   document.getElementById('reviewRefresh').addEventListener('click',loadReviews);
 
   const escStudent=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  async function loadStudentGroupInfo(){
+    const box=document.getElementById('studentGroupInfo');if(!box)return;
+    box.innerHTML='<strong>Przynależność klubowa</strong><div class="note">Pobieram grupy i trenera…</div>';
+    try{
+      const {data,error}=await client.rpc('get_my_group_details');if(error)throw error;
+      if(!data?.length){box.innerHTML='<strong>Przynależność klubowa</strong><div class="group-line">Nie jesteś jeszcze przypisany do żadnej grupy. Poproś trenera o przypisanie.</div>';return;}
+      box.innerHTML='<strong>Twoje grupy treningowe</strong>'+data.map(g=>`<div class="group-line"><b>${escStudent(g.group_name||'Grupa')}</b>${g.level?' · '+escStudent(g.level):''}<br>Trener: ${escStudent(g.trainer_name||'Nie przypisano trenera')}</div>`).join('');
+    }catch(e){box.innerHTML='<strong>Przynależność klubowa</strong><div class="note">Nie udało się pobrać informacji o grupie i trenerze: '+escStudent(e.message||String(e))+'</div>'; }
+  }
   async function loadStudentTasks(){
     if(!currentProfile || !currentProfile.roles?.includes('player') || studentBusy)return;
     studentBusy=true;
+    loadStudentGroupInfo();
     studentTaskList.innerHTML='<div class="note">Pobieram zadania…</div>';
     try{
       const {data:members,error:me}=await client.from('group_members').select('group_id').eq('player_id',(await client.auth.getUser()).data.user.id);
@@ -1214,9 +1225,11 @@
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
     const roleLabel=roles.map(role=>roleNames[role]||role).join(' + ');
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleLabel} · ${profile.xp||0} XP`;
-    const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
-    banner.textContent='Konto online jest rozpoznane. Grupy, trenerzy, przypisania, zadania, zgłoszenia, XP i kalendarz korzystają z Supabase. Moduły szachowe i osobista biblioteka taktyczna nadal działają lokalnie.';
-    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(canManage){loadReviews();loadCalendar();loadAcademyOnline();}
+    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();
+    const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px';
+    const bannerText=document.createElement('span');bannerText.textContent='Konto online jest rozpoznane. Grupy, trenerzy, przypisania, zadania, zgłoszenia, XP i kalendarz korzystają z Supabase. Moduły szachowe i osobista biblioteka taktyczna nadal działają lokalnie.';
+    const closeBanner=document.createElement('button');closeBanner.type='button';closeBanner.textContent='×';closeBanner.setAttribute('aria-label','Zamknij powiadomienie');closeBanner.style.cssText='flex:0 0 auto;border:0;border-radius:7px;padding:2px 9px;background:#e8d8ad;color:#57451e;font-size:22px;line-height:1.2;cursor:pointer';closeBanner.addEventListener('click',()=>banner.remove());
+    banner.append(bannerText,closeBanner);sessionBar.after(banner);if(canManage){loadReviews();loadCalendar();loadAcademyOnline();}
   }
   async function run(action){if(busy)return;busy=true;document.getElementById('authLogin').disabled=true;document.getElementById('authRegister').disabled=true;
     const email=document.getElementById('authEmail').value.trim();const password=document.getElementById('authPassword').value;
