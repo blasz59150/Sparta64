@@ -108,6 +108,19 @@
     .student-group-info{margin:12px 0;padding:12px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}.student-group-info .group-line{margin-top:6px;font-size:13px}.student-group-info strong{display:block}
     @media(max-width:760px){#spartaStudent .student-card{padding:13px}}
 
+
+    /* v2.8 — system zadań szachowych */
+    .chess-task-panel{max-width:1050px;margin:18px auto;padding:0 16px}
+    .chess-task-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a;margin-bottom:14px}
+    .ct-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .ct-grid label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:650}
+    .ct-grid input,.ct-grid select,.ct-grid textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fffdf8;color:var(--ink);font:inherit}
+    .ct-wide{grid-column:1/-1}.ct-board{display:grid;grid-template-columns:repeat(8,1fr);width:min(100%,420px);aspect-ratio:1;margin:10px auto;border:4px solid #b9ad96;border-radius:7px;overflow:hidden}
+    .ct-square{border:0;border-radius:0;padding:0;display:grid;place-items:center;font-size:clamp(20px,5vw,42px);line-height:1;cursor:pointer;min-width:0}
+    .ct-square.light{background:#eee7d8}.ct-square.dark{background:#9eaa9d}.ct-square:focus-visible{outline:3px solid #a92e32;outline-offset:-3px}
+    .ct-note{font-size:12px;color:var(--muted);white-space:pre-wrap}.ct-task{padding:12px;border:1px solid var(--line);border-radius:10px;margin:9px 0;background:#f8f5ee}
+    @media(max-width:650px){.ct-grid{grid-template-columns:1fr}.ct-wide{grid-column:auto}}
+
     [hidden]{display:none!important}
   </style>
 </head>
@@ -154,7 +167,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">AKADEMIA 64 · v2.6</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">AKADEMIA 64 · v2.8</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -209,7 +222,7 @@
       <div class="stat-grid"><div class="stat"><strong id="academyXp">0</strong><span class="note">Punkty XP</span></div><div class="stat"><strong id="academyLevel">1</strong><span class="note">Poziom</span></div><div class="stat"><strong id="academySolved">0</strong><span class="note">Rozwiązane</span></div></div>
       <p class="note" id="academyLevelName">Początkujący</p><div class="levelbar"><span id="academyLevelBar"></span></div>
       <h3>Odznaki</h3><div id="academyBadges" class="badge-list"></div>
-      <div id="studentGroupInfo" class="student-group-info" aria-live="polite"><strong>Przynależność klubowa</strong><div class="note">Ładowanie grupy i trenera…</div></div><p class="note">Pseudonim i statystyki taktyczne są lokalne. Przynależność do grup i trener prowadzący są pobierani z konta Akademii.</p>
+      <div id="studentGroupInfo" class="student-group-info" aria-live="polite"><strong>Przynależność klubowa</strong><div class="note">Ładowanie grupy i trenera…</div></div><p class="note" id="profileSyncNote">XP, poziom, liczba zaliczeń i postęp biblioteki są synchronizowane z kontem Akademii.</p>
     </div>
     <div class="academy-card">
       <h2>Biblioteka zadań</h2>
@@ -218,7 +231,7 @@
         <div class="library-item"><div><div class="badge-title">♞ Zbij atakującego skoczka</div><p>Poziom 1 · Obrona · Znajdź ruch, który usuwa szacha.</p></div><button class="action" data-puzzle="knight">Rozwiąż</button></div>
         <div class="library-item"><div><div class="badge-title">♛ Zdobądź hetmana</div><p>Poziom 1 · Taktyka · Wykorzystaj możliwość bicia hetmana.</p></div><button class="action" data-puzzle="queen">Rozwiąż</button></div>
       </div>
-      <p class="note" id="libraryMessage" style="margin-top:12px">Wybierz zadanie, aby uruchomić je w trenerze interaktywnym.</p>
+      <p class="note" id="libraryMessage" style="margin-top:12px">Postęp i nagrody zapisują się na koncie. Każde zadanie daje XP tylko za pierwsze poprawne rozwiązanie; ćwiczyć możesz bez limitu.</p>
     </div>
   </div>
 </section>
@@ -321,7 +334,37 @@
   </div>
 </section>
 
-<footer>SPARTA 64 · Akademia 64 v2.6 · Panel Akademii online · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+
+<section class="chess-task-panel" id="spartaChessTasks" hidden>
+  <div class="chess-task-card" id="chessTaskAdmin" hidden>
+    <h2>Kreator zadań szachowych · trener</h2>
+    <p class="note">Ustaw pozycję klikając pola (kolejne kliknięcia: puste → białe figury → czarne figury → puste). Zapisz zadanie jako szkic lub opublikuj dla grupy. Rozwiązanie wpisz jako ciąg ruchów UCI, np. <code>e2e4 e7e5 g1f3</code>.</p>
+    <div class="ct-grid">
+      <label>Tytuł<input id="ctTitle" maxlength="100" placeholder="Np. Widełki skoczkiem"></label>
+      <label>Kategoria<select id="ctCategory"><option>Obrona</option><option>Atak</option><option>Taktyka</option><option>Matowanie</option><option>Strategia</option><option>Wyzwania</option></select></label>
+      <label>Strona na ruchu<select id="ctSide"><option value="w">Białe</option><option value="b">Czarne</option></select></label>
+      <label>Trudność<select id="ctDifficulty"><option value="1">1 · Początkujący</option><option value="2">2 · Łatwy</option><option value="3" selected>3 · Średni</option><option value="4">4 · Trudny</option><option value="5">5 · Zaawansowany</option></select></label>
+      <label>Nagroda XP<input id="ctXp" type="number" min="0" max="100" value="5"></label>
+      <label>Grupa<select id="ctGroup"><option value="">Wybierz grupę</option></select></label>
+      <label>Termin (opcjonalnie)<input id="ctDue" type="date"></label>
+      <label class="ct-wide">Przypisz konkretnemu zawodnikowi (UUID, opcjonalnie)<input id="ctPlayer" placeholder="Pozostaw puste, aby przypisać całej grupie"></label>
+      <label class="ct-wide">Podpowiedzi (jedna na linię)<textarea id="ctHints" rows="2" placeholder="Zwróć uwagę na niebronioną figurę…"></textarea></label>
+      <label class="ct-wide">Rozwiązanie – ruchy UCI w kolejności<textarea id="ctSolution" rows="2" placeholder="np. g5f7 e8f7"></textarea></label>
+    </div>
+    <div class="note" style="margin-top:12px">Pozycja początkowa · kliknij pole, aby zmieniać figurę</div>
+    <div class="ct-board" id="ctEditorBoard" aria-label="Edytor pozycji szachowej"></div>
+    <div class="toolbar"><button class="action secondary" id="ctResetBoard" type="button">Pozycja początkowa</button><button class="action secondary" id="ctClearBoard" type="button">Wyczyść planszę</button><button class="action secondary" id="ctFlipBoard" type="button">Obróć widok</button><button class="action" id="ctSaveDraft" type="button">Zapisz szkic</button><button class="action" id="ctPublish" type="button">Opublikuj zadanie</button></div>
+    <p class="note" id="ctAdminMessage" role="status">Kreator zapisuje zadania w Supabase.</p>
+    <h3>Moje zadania</h3><div id="ctAdminList"></div>
+  </div>
+  <div class="chess-task-card" id="chessTaskStudent" hidden>
+    <h2>Moje zadania szachowe</h2><p class="note">Rozwiązuj zadania przypisane przez trenera. XP przyznawane jest tylko za pierwsze poprawne rozwiązanie.</p>
+    <div id="ctStudentList">Ładowanie zadań…</div>
+    <div id="ctSolver" hidden><h3 id="ctSolverTitle"></h3><p class="note" id="ctSolverMeta"></p><div class="ct-board" id="ctSolverBoard" aria-label="Plansza zadania"></div><div class="toolbar"><button class="action secondary" id="ctHint" type="button">Podpowiedź</button><button class="action secondary" id="ctResetSolver" type="button">Od początku</button><button class="action" id="ctCheckSolver" type="button">Sprawdź rozwiązanie</button></div><p class="note" id="ctSolverMessage" role="status"></p></div>
+  </div>
+</section>
+
+<footer>SPARTA 64 · Akademia 64 v2.8 · Panel Akademii online · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -558,14 +601,17 @@
     }
     const t=currentTask();trainerProgress.textContent=t?`Zadanie ${trainerIndex+1} z ${trainerTasks.length} · ${t.move} · ${t.label}`:"Koniec zadań";
   }
-  function trainerSquare(sq){
+  async function trainerSquare(sq){
     if(!trainerGame||trainerSolved||!currentTask())return;
     const piece=trainerGame.get(sq);
     if(trainerSelected&&trainerTargets.includes(sq)){
       const made=trainerGame.move({from:trainerSelected,to:sq,promotion:"q"});trainerSelected=null;trainerTargets=[];
       if(made){
         const t=currentTask(),uci=made.from+made.to+(made.promotion||"");
-        if(uci===t.bestUci){trainerSolved=true;const earned=hintLevel===0?3:hintLevel===1?2:1;trainerScore+=earned;awardAcademyPoints(earned);trainerMessage.textContent=`Świetnie! ${made.san} to prawidłowe rozwiązanie. Zdobywasz ${earned} pkt. ${t.tip}`;trainerPoints.textContent=`Punkty treningowe w tej sesji: ${trainerScore}`;nextTask.disabled=false;trainerHint.disabled=true;}
+        if(uci===t.bestUci){trainerSolved=true;const puzzleId=t.puzzleId||'unknown';trainerMessage.textContent='Poprawny ruch! Zapisuję wynik w Akademii…';nextTask.disabled=true;trainerHint.disabled=true;
+          try{const result=await awardAcademyPoints(puzzleId);const earned=Number(result.xp_awarded)||0;trainerScore+=earned;trainerMessage.textContent=result.already_completed?`Świetnie! ${made.san} jest poprawny. To zadanie było już wcześniej zaliczone — ćwiczysz ponownie bez dodatkowych XP. ${t.tip}`:`Świetnie! ${made.san} to prawidłowe rozwiązanie. Zdobywasz ${earned} XP do rankingu Akademii. ${t.tip}`;}
+          catch(err){trainerMessage.textContent='Ruch jest poprawny, ale nie udało się zapisać wyniku: '+(err.message||String(err));trainerSolved=false;trainerGame.undo();nextTask.disabled=true;trainerHint.disabled=false;}
+          trainerPoints.textContent=`Punkty treningowe w tej sesji: ${trainerScore}`;if(trainerSolved){nextTask.disabled=false;trainerHint.disabled=true;}}
         else{trainerGame.undo();trainerMessage.textContent=`To legalny ruch, ale nie jest najlepszym rozwiązaniem. Spróbuj ponownie. ${t.tip}`;}
       }
       renderTrainer();return;
@@ -593,20 +639,20 @@
   });
   nextTask.addEventListener("click",()=>{trainerIndex++;loadTrainingTask();});
 
-  // Profil demonstracyjny i postęp zapisywane lokalnie w tej przeglądarce.
+  // Profil Akademii: źródłem prawdy dla XP jest Supabase (profiles.xp).
+  // Dawne lokalne statystyki pozostają nietknięte jako kopia historyczna, ale nie są już używane do rankingu.
   const academyKey="sparta64_academy_profile_v07";
   const academyDefaults={name:"Zawodnik Sparty",xp:0,solved:0};
-  let academyData=academyDefaults;
-  try{academyData={...academyDefaults,...JSON.parse(localStorage.getItem(academyKey)||"{}")} }catch(e){}
+  let academyData={...academyDefaults}, onlinePuzzleIds=new Set(), academyProfileBusy=false;
   const badgeDefinitions=[
-    {id:"first",name:"Pierwszy krok",desc:"Rozwiąż pierwsze zadanie.",test:d=>d.solved>=1},
-    {id:"five",name:"Wytrwały wojownik",desc:"Rozwiąż 5 zadań.",test:d=>d.solved>=5},
+    {id:"first",name:"Pierwszy krok",desc:"Zalicz pierwsze zadanie.",test:d=>d.solved>=1},
+    {id:"five",name:"Wytrwały wojownik",desc:"Zalicz 5 zadań.",test:d=>d.solved>=5},
     {id:"xp25",name:"Złoty pion",desc:"Zdobądź 25 punktów XP.",test:d=>d.xp>=25},
     {id:"xp100",name:"Spartański talent",desc:"Zdobądź 100 punktów XP.",test:d=>d.xp>=100}
   ];
-  function saveAcademy(){try{localStorage.setItem(academyKey,JSON.stringify(academyData));}catch(e){}}
   function renderAcademy(){
-    document.getElementById("playerName").value=academyData.name;
+    const nameInput=document.getElementById("playerName");
+    if(nameInput && document.activeElement!==nameInput)nameInput.value=academyData.name;
     document.getElementById("academyXp").textContent=academyData.xp;
     document.getElementById("academySolved").textContent=academyData.solved;
     const level=Math.floor(academyData.xp/30)+1,within=academyData.xp%30;
@@ -615,12 +661,56 @@
     document.getElementById("academyLevelName").textContent=`${names[Math.min(level-1,names.length-1)]} · ${within}/30 XP do kolejnego poziomu`;
     document.getElementById("academyLevelBar").style.width=(within/30*100)+"%";
     document.getElementById("academyBadges").innerHTML=badgeDefinitions.map(b=>`<div class="badge-item ${b.test(academyData)?"":"locked"}"><div class="badge-title">${b.test(academyData)?"🏅":"🔒"} ${b.name}</div><div class="note">${b.desc}</div></div>`).join("");
+    renderLibraryProgress();
   }
-  function awardAcademyPoints(points){academyData.xp+=points;academyData.solved+=1;saveAcademy();renderAcademy();}
-  document.getElementById("saveProfile").addEventListener("click",()=>{const value=document.getElementById("playerName").value.trim();academyData.name=value||"Zawodnik Sparty";saveAcademy();renderAcademy();document.getElementById("libraryMessage").textContent="Profil zapisany na tym urządzeniu.";});
+  function renderLibraryProgress(){
+    document.querySelectorAll('[data-puzzle]').forEach(button=>{
+      const id=button.dataset.puzzle,done=onlinePuzzleIds.has(id);
+      button.textContent=done?'Ćwicz ponownie':'Rozwiąż';
+      button.title=done?'Zadanie już zaliczone — ponowne ćwiczenie nie przyzna kolejnych XP.':'Pierwsze poprawne rozwiązanie przyzna XP.';
+      const item=button.closest('.library-item');
+      if(item){let status=item.querySelector('.library-progress');if(!status){status=document.createElement('p');status.className='library-progress';item.querySelector('div').append(status);}status.textContent=done?'🏅 Zaliczone · nagroda już przyznana':'Nowe · nagroda za pierwsze rozwiązanie';}
+    });
+  }
+  async function loadOnlinePlayerProfile(){
+    if(!currentProfile?.roles?.includes('player'))return;
+    if(academyProfileBusy)return;academyProfileBusy=true;
+    try{
+      const {data:userData,error:ue}=await client.auth.getUser();if(ue)throw ue;
+      const uid=userData?.user?.id;if(!uid)throw new Error('Brak aktywnej sesji.');
+      const [{data:profile,error:pe},{data:prefs,error:prE},{data:puzzles,error:puE},{data:taskDone,error:tdE}]=await Promise.all([
+        client.from('profiles').select('id,display_name,xp').eq('id',uid).single(),
+        client.from('player_preferences').select('nickname').eq('user_id',uid).maybeSingle(),
+        client.from('tactical_puzzle_completions').select('puzzle_id').eq('user_id',uid),
+        client.from('task_completions').select('id').eq('player_id',uid).eq('status','approved')
+      ]);
+      if(pe)throw pe;if(prE)throw prE;if(puE)throw puE;if(tdE)throw tdE;
+      onlinePuzzleIds=new Set((puzzles||[]).map(x=>x.puzzle_id));
+      academyData={name:prefs?.nickname||profile.display_name||'Zawodnik Sparty',xp:Number(profile.xp)||0,solved:onlinePuzzleIds.size+(taskDone||[]).length};
+      currentProfile={...currentProfile,xp:academyData.xp,display_name:profile.display_name||currentProfile.display_name};
+      renderAcademy();
+      const label=document.getElementById('sessionLabel');if(label){const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};label.textContent=`Witaj, ${profile.display_name||userData.user.email} · ${currentProfile.roles.map(r=>roleNames[r]||r).join(' + ')} · ${academyData.xp} XP`;}
+      document.getElementById('profileSyncNote').textContent='Dane zsynchronizowane z Akademią: XP z profilu Supabase, zaliczenia z historii zadań i biblioteki.';
+    }catch(e){document.getElementById('profileSyncNote').textContent='Nie udało się zsynchronizować profilu: '+(e.message||String(e));}
+    finally{academyProfileBusy=false;}
+  }
+  async function awardAcademyPoints(puzzleId){
+    if(!currentProfile?.roles?.includes('player'))throw new Error('Zaloguj się na konto zawodnika, aby zapisywać postęp i zdobywać XP.');
+    const {data,error}=await client.rpc('complete_tactical_puzzle',{p_puzzle_id:puzzleId});if(error)throw error;
+    await loadOnlinePlayerProfile();
+    return data||{};
+  }
+  document.getElementById("saveProfile").addEventListener("click",async()=>{
+    if(!currentProfile?.roles?.includes('player')){document.getElementById('libraryMessage').textContent='Zaloguj się jako zawodnik, aby zapisać pseudonim.';return;}
+    const value=document.getElementById("playerName").value.trim().slice(0,24)||'Zawodnik Sparty';
+    const {data:userData,error:ue}=await client.auth.getUser();if(ue||!userData?.user){document.getElementById('libraryMessage').textContent='Sesja wygasła. Zaloguj się ponownie.';return;}
+    const {error}=await client.from('player_preferences').upsert({user_id:userData.user.id,nickname:value},{onConflict:'user_id'});
+    if(error){document.getElementById('libraryMessage').textContent='Nie udało się zapisać pseudonimu: '+error.message;return;}
+    academyData.name=value;renderAcademy();document.getElementById("libraryMessage").textContent='Pseudonim zapisany na koncie Akademii.';
+  });
   const academyPuzzles={
-    knight:{fen:"4k3/8/8/8/8/5n2/4Q3/4K3 w - - 0 1",bestUci:"e2f3",bestSan:"Qxf3",move:"Zadanie: usuń szacha",label:"Zadanie taktyczne",tip:"Skoczek szachuje króla. Hetman może go zbić po przekątnej."},
-    queen:{fen:"7k/6pp/8/8/8/8/5q2/4K2R w - - 0 1",bestUci:"e1f2",bestSan:"Kxf2",move:"Zadanie: zdobądź hetmana",label:"Zadanie taktyczne",tip:"Król może zbić hetmana, jeśli pole nie jest bronione. Sprawdź bezpieczeństwo pola f2."}
+    knight:{puzzleId:"knight",fen:"4k3/8/8/8/8/5n2/4Q3/4K3 w - - 0 1",bestUci:"e2f3",bestSan:"Qxf3",move:"Zadanie: usuń szacha",label:"Zadanie taktyczne",tip:"Skoczek szachuje króla. Hetman może go zbić po przekątnej."},
+    queen:{puzzleId:"queen",fen:"7k/6pp/8/8/8/8/5q2/4K2R w - - 0 1",bestUci:"e1f2",bestSan:"Kxf2",move:"Zadanie: zdobądź hetmana",label:"Zadanie taktyczne",tip:"Król może zbić hetmana, jeśli pole nie jest bronione. Sprawdź bezpieczeństwo pola f2."}
   };
   document.querySelectorAll("[data-puzzle]").forEach(button=>button.addEventListener("click",()=>{
     const puzzle=academyPuzzles[button.dataset.puzzle];
@@ -889,7 +979,7 @@
 
   let busy=false, currentProfile=null, reviewBusy=false;
   // =========================================================
-  // SPARTA 64 v2.6 – ONLINE ACADEMY MANAGEMENT
+  // SPARTA 64 v2.8 – ONLINE ACADEMY MANAGEMENT
   // Groups, trainers, memberships, group tasks and rankings.
   // All writes are protected by Supabase RLS.
   // =========================================================
@@ -1254,13 +1344,14 @@
     const localStructure=document.querySelector('.academy09');
     if(localCoach)localCoach.hidden=true; // Legacy local roster is intentionally disabled in v2.6.
     if(localStructure)localStructure.hidden=!canManage;
-    if(roles.includes('player'))loadStudentTasks();
+    if(roles.includes('player')){loadStudentTasks();loadOnlinePlayerProfile();document.getElementById('spartaChessTasks').hidden=false;document.getElementById('chessTaskStudent').hidden=false;ctLoadStudent();}
+    if(canManage){document.getElementById('spartaChessTasks').hidden=false;document.getElementById('chessTaskAdmin').hidden=false;ctRenderBoard(document.getElementById('ctEditorBoard'),ctEditor,true,ctEditorFlip);ctLoadAdmin().catch(e=>ctEditorMessage('Błąd kreatora: '+e.message));}
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
     const roleLabel=roles.map(role=>roleNames[role]||role).join(' + ');
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleLabel} · ${profile.xp||0} XP`;
     const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px';
-    const bannerText=document.createElement('span');bannerText.textContent='Konto online jest rozpoznane. Grupy, trenerzy, przypisania, zadania, zgłoszenia, XP i kalendarz korzystają z Supabase. Moduły szachowe i osobista biblioteka taktyczna nadal działają lokalnie.';
+    const bannerText=document.createElement('span');bannerText.textContent='Konto online jest rozpoznane. Grupy, trenerzy, przypisania, zadania, zgłoszenia, XP i kalendarz korzystają z Supabase. Trener szachowy działa lokalnie, a postęp biblioteki taktycznej i XP zapisują się na koncie Akademii.';
     const closeBanner=document.createElement('button');closeBanner.type='button';closeBanner.textContent='×';closeBanner.setAttribute('aria-label','Zamknij powiadomienie');closeBanner.style.cssText='flex:0 0 auto;border:0;border-radius:7px;padding:2px 9px;background:#e8d8ad;color:#57451e;font-size:22px;line-height:1.2;cursor:pointer';closeBanner.addEventListener('click',()=>banner.remove());
     banner.append(bannerText,closeBanner);sessionBar.after(banner);if(canManage){loadReviews();loadCalendar();loadAcademyOnline();}
   }
@@ -1278,6 +1369,71 @@
     }catch(e){setMsg(e.message||'Wystąpił błąd logowania.');}
     finally{busy=false;document.getElementById('authLogin').disabled=false;document.getElementById('authRegister').disabled=false;}
   }
+
+  // =========================================================
+  // v2.8 — online chess tasks (trainer authoring + player solving)
+  // The server validates the complete UCI line and awards XP once.
+  // =========================================================
+  const ctPanel=document.getElementById('spartaChessTasks');
+  const ctSymbols={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+  const ctFiles='abcdefgh'; let ctEditor=new Chess(),ctEditorFlip=false,ctSolver=null,ctCurrent=null,ctSolverMoves=[],ctHintIndex=0;
+  function ctEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function ctFenFromBoard(game){return game.fen();}
+  function ctRenderBoard(el,game,editor=false,flip=false){
+    if(!el)return;el.innerHTML='';
+    const ranks=flip?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1],files=flip?[7,6,5,4,3,2,1,0]:[0,1,2,3,4,5,6,7];
+    ranks.forEach(rank=>files.forEach(file=>{const sq=ctFiles[file]+rank,p=game.get(sq),b=document.createElement('button');b.type='button';b.className='ct-square '+(((file+rank)%2===0)?'dark':'light');b.textContent=p?ctSymbols[p.color==='w'?p.type.toUpperCase():p.type]||'':'';b.setAttribute('aria-label',sq+(p?' '+p.type:''));b.addEventListener('click',()=>editor?ctEditorClick(sq):ctSolverClick(sq));el.append(b);}));
+  }
+  function ctEditorClick(sq){
+    const order=['','P','N','B','R','Q','K','p','n','b','r','q','k'];
+    const old=ctEditor.get(sq),key=old?(old.color==='w'?old.type.toUpperCase():old.type):'';const next=order[(order.indexOf(key)+1)%order.length];
+    const board=ctEditor.board().map(row=>row.map(p=>p?{...p}:null));const r=8-Number(sq[1]),f=ctFiles.indexOf(sq[0]);board[r][f]=next?{type:next.toLowerCase(),color:next===next.toUpperCase()?'w':'b'}:null;
+    let fenRows=board.map(row=>{let out='',empty=0;row.forEach(p=>{if(!p)empty++;else{if(empty)out+=empty;empty=0;out+=p.color==='w'?p.type.toUpperCase():p.type;}});if(empty)out+=empty;return out;}).join('/');
+    const side=document.getElementById('ctSide')?.value||'w';const candidate=`${fenRows} ${side} - - 0 1`;const check=new Chess();if(check.load(candidate))ctEditor=check;ctRenderBoard(document.getElementById('ctEditorBoard'),ctEditor,true,ctEditorFlip);
+  }
+  function ctEditorMessage(t){const el=document.getElementById('ctAdminMessage');if(el)el.textContent=t;}
+  async function ctLoadAdmin(){
+    const sel=document.getElementById('ctGroup');const {data:groups,error}=await client.from('training_groups').select('id,name,level').order('name');if(error)throw error;
+    sel.innerHTML='<option value="">Wybierz grupę</option>'+(groups||[]).map(g=>`<option value="${ctEsc(g.id)}">${ctEsc(g.name)} · ${ctEsc(g.level||'')}</option>`).join('');
+    const {data:rows,error:re}=await client.from('sparta_chess_tasks').select('id,title,category,difficulty,xp_reward,is_published,created_at,assigned_group_id').order('created_at',{ascending:false}).limit(50);if(re)throw re;
+    const list=document.getElementById('ctAdminList');list.innerHTML=(rows||[]).map(t=>`<div class="ct-task"><strong>${ctEsc(t.title)}</strong> · ${ctEsc(t.category)} · ${t.xp_reward} XP · ${t.is_published?'Opublikowane':'Szkic'}<br><span class="ct-note">${ctEsc(t.id)}</span></div>`).join('')||'<p class="note">Nie ma jeszcze zadań.</p>';
+  }
+  async function ctSave(publish){
+    const title=document.getElementById('ctTitle').value.trim(),group=document.getElementById('ctGroup').value,solution=document.getElementById('ctSolution').value.trim().split(/\s+/).filter(Boolean),player=document.getElementById('ctPlayer').value.trim();
+    if(!title||!group||!solution.length){ctEditorMessage('Uzupełnij tytuł, grupę i pełną linię rozwiązania.');return;}
+    if(solution.some(m=>!/^[a-h][1-8][a-h][1-8][qrbn]?$/i.test(m))){ctEditorMessage('Rozwiązanie musi być zapisane ruchami UCI, np. e2e4 g8f6.');return;}
+    const xp=Math.max(0,Math.min(100,Number(document.getElementById('ctXp').value)||0));const due=document.getElementById('ctDue').value||null;
+    let replay=new Chess();if(!replay.load(ctEditor.fen())){ctEditorMessage('Nieprawidłowa pozycja FEN.');return;}
+    for(const uci of solution){const move=replay.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||'q'});if(!move){ctEditorMessage('Linia rozwiązania zawiera nielegalny ruch: '+uci);return;}}
+    const payload={title,category:document.getElementById('ctCategory').value,difficulty:Number(document.getElementById('ctDifficulty').value),xp_reward:xp,fen:ctEditor.fen(),assigned_group_id:group,assigned_player_id:player||null,due_date:due,hints:document.getElementById('ctHints').value.split('\n').map(x=>x.trim()).filter(Boolean),is_published:!!publish};
+    try{const {data,error}=await client.from('sparta_chess_tasks').insert(payload).select('id').single();if(error)throw error;const {error:se}=await client.from('sparta_chess_task_solutions').insert({task_id:data.id,solution_uci:solution});if(se){await client.from('sparta_chess_tasks').delete().eq('id',data.id);throw se;}
+      ctEditorMessage(publish?'Zadanie opublikowano i przypisano.':'Szkic zapisany w Supabase.');await ctLoadAdmin();
+    }catch(e){ctEditorMessage('Nie udało się zapisać: '+(e.message||String(e)));}
+  }
+  async function ctLoadStudent(){
+    const list=document.getElementById('ctStudentList');list.textContent='Pobieram zadania…';
+    try{const {data:rows,error}=await client.from('sparta_chess_tasks').select('id,title,category,difficulty,xp_reward,fen,due_date,hints,assigned_group_id').eq('is_published',true).order('created_at',{ascending:false});if(error)throw error;
+      const {data:done,error:de}=await client.from('sparta_chess_task_completions').select('task_id').eq('user_id',(await client.auth.getUser()).data.user.id);if(de)throw de;const completed=new Set((done||[]).map(x=>x.task_id));
+      list.innerHTML=(rows||[]).map(t=>`<div class="ct-task"><strong>${ctEsc(t.title)}</strong><div class="ct-note">${ctEsc(t.category)} · poziom ${t.difficulty} · ${t.xp_reward} XP${t.due_date?' · termin '+ctEsc(t.due_date):''}</div><button class="action" type="button" data-ct-open="${ctEsc(t.id)}" ${completed.has(t.id)?'':' '}>${completed.has(t.id)?'Ćwicz ponownie':'Rozwiąż'}</button>${completed.has(t.id)?'<span class="ct-note"> · Zaliczone</span>':''}</div>`).join('')||'<p class="note">Nie masz opublikowanych zadań.</p>';
+      list.querySelectorAll('[data-ct-open]').forEach(b=>b.addEventListener('click',()=>ctOpenStudentTask(b.dataset.ctOpen,rows.find(t=>t.id===b.dataset.ctOpen))));
+    }catch(e){list.textContent='Błąd pobierania zadań: '+(e.message||String(e));}
+  }
+  async function ctOpenStudentTask(id,task){if(!task)return;ctCurrent=task;ctSolver=new Chess();if(!ctSolver.load(task.fen)){document.getElementById('ctSolverMessage').textContent='Nieprawidłowa pozycja zadania.';return;}ctSolverMoves=[];ctHintIndex=0;document.getElementById('ctSolver').hidden=false;document.getElementById('ctSolverTitle').textContent=task.title;document.getElementById('ctSolverMeta').textContent=task.category+' · '+task.xp_reward+' XP';document.getElementById('ctSolverMessage').textContent='Wykonaj rozwiązanie na planszy.';ctRenderBoard(document.getElementById('ctSolverBoard'),ctSolver);document.getElementById('ctSolver').scrollIntoView({behavior:'smooth',block:'center'});ctCurrent.id=id;}
+  let ctSelected=null;
+  async function ctSolverClick(sq){if(!ctSolver||!ctCurrent)return;const p=ctSolver.get(sq);if(ctSelected){const m=ctSolver.move({from:ctSelected,to:sq,promotion:'q'});if(m){ctSolverMoves.push(m.from+m.to+(m.promotion||''));ctSelected=null;ctRenderBoard(document.getElementById('ctSolverBoard'),ctSolver);return;} }ctSelected=p&&p.color===ctSolver.turn()?sq:null;}
+  async function ctSubmitSolution(){try{const {data,error}=await client.rpc('submit_sparta_chess_solution',{p_task_id:ctCurrent.id,p_solution_uci:ctSolverMoves});if(error)throw error;document.getElementById('ctSolverMessage').textContent=data?.already_completed?'Poprawnie! Zadanie było już zaliczone — bez dodatkowych XP.':`Brawo! Poprawne rozwiązanie. Przyznano ${data?.xp_awarded||0} XP.`;await loadOnlinePlayerProfile();await ctLoadStudent();}catch(e){document.getElementById('ctSolverMessage').textContent='Nie udało się zweryfikować rozwiązania: '+(e.message||String(e));}}
+  document.getElementById('ctHint').addEventListener('click',()=>{const hints=ctCurrent?.hints||[];const msg=document.getElementById('ctSolverMessage');msg.textContent=hints[ctHintIndex++]||'Brak kolejnych podpowiedzi.';});
+  document.getElementById('ctCheckSolver').addEventListener('click',ctSubmitSolution);
+  document.getElementById('ctResetSolver').addEventListener('click',()=>{if(!ctCurrent)return;ctSolver=new Chess();ctSolver.load(ctCurrent.fen);ctSolverMoves=[];ctSelected=null;ctRenderBoard(document.getElementById('ctSolverBoard'),ctSolver);document.getElementById('ctSolverMessage').textContent='Plansza zresetowana.';});
+  document.getElementById('ctSaveDraft').addEventListener('click',()=>ctSave(false));document.getElementById('ctPublish').addEventListener('click',()=>ctSave(true));
+  document.getElementById('ctSide').addEventListener('change',()=>{const f=ctEditor.fen().split(' ');f[1]=document.getElementById('ctSide').value;const g=new Chess();if(g.load(f.join(' ')))ctEditor=g;ctRenderBoard(document.getElementById('ctEditorBoard'),ctEditor,true,ctEditorFlip);});
+  document.getElementById('ctResetBoard').addEventListener('click',()=>{ctEditor=new Chess();ctRenderBoard(document.getElementById('ctEditorBoard'),ctEditor,true,ctEditorFlip);});
+  document.getElementById('ctClearBoard').addEventListener('click',()=>{ctEditor=new Chess();ctEditor.clear();ctRenderBoard(document.getElementById('ctEditorBoard'),ctEditor,true,ctEditorFlip);});
+  document.getElementById('ctFlipBoard').addEventListener('click',()=>{ctEditorFlip=!ctEditorFlip;ctRenderBoard(document.getElementById('ctEditorBoard'),ctEditor,true,ctEditorFlip);});
+
+  // Determine roles after authentication; no demo/local storage is used for authored tasks.
+
+
   document.getElementById('authLogin').addEventListener('click',()=>run('login'));
   document.getElementById('authRegister').addEventListener('click',()=>run('register'));
   document.getElementById('authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')run('login');});
