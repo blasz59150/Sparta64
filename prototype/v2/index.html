@@ -76,7 +76,7 @@
     body.auth-locked>#spartaReview{display:none!important}
     @media(max-width:760px){#spartaReview .review-card{padding:13px}}
 
-    body.auth-locked>header,body.auth-locked>main,body.auth-locked>.academy,body.auth-locked>footer{display:none!important}
+    body.auth-locked>header,body.auth-locked>main,body.auth-locked>.academy,body.auth-locked>.coach-section,body.auth-locked>.academy09,body.auth-locked>footer{display:none!important}
     #spartaAuth{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at top,#33343a,#17191d 65%);color:#f7f4ec;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
     #spartaAuth .auth-card{width:min(100%,440px);background:#24262c;border:1px solid #51483b;border-top:4px solid #a92e32;border-radius:18px;padding:26px;box-shadow:0 18px 60px #0008}
     #spartaAuth .auth-crest{width:54px;height:54px;border:2px solid #c5a45b;border-radius:50%;display:grid;place-items:center;color:#c5a45b;font-size:30px;margin-bottom:14px}
@@ -148,7 +148,7 @@
 <header><div class="brand"><div class="crest">♞</div><div><h1>SPARTA 64</h1><div class="sub">AKADEMIA SZACHOWA · LZS SPARTA GRĘBOCICE</div></div></div></header>
 <main>
   <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">PROTOTYP 2.1</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px"><h2>Szachownica treningowa</h2><span class="pill">AKADEMIA 64 · v2.6</span></div>
     <div class="settings">
       <div><label for="opponent">Tryb gry</label><select id="opponent"><option value="human">Dwóch graczy</option><option value="computer">Graj z komputerem</option></select></div>
       <div><label for="playerColor">Twoje figury</label><select id="playerColor"><option value="w">Białe</option><option value="b">Czarne</option></select></div>
@@ -242,11 +242,11 @@
 
 <section class="academy09" aria-labelledby="academy09Title">
   <div class="academy09-card">
-    <div class="a09-item-head"><h2 id="academy09Title">Struktura Akademii · 1.0</h2><span class="pill">KOPIA ZAPASOWA</span></div>
-    <p class="note">Grupy, trenerzy, zadania grupowe i kalendarz. Dane są przechowywane lokalnie w tej przeglądarce. Wersja 1.0 pozwala wykonać kopię zapasową i odtworzyć ją na innym urządzeniu.</p>
+    <div class="a09-item-head"><h2 id="academy09Title">Struktura Akademii · 2.6</h2><button class="action secondary" id="a09RefreshOnline" type="button">Odśwież Akademię</button></div>
+    <p class="note">Grupy, trenerzy, przypisania zawodników, zadania grupowe, zgłoszenia i rankingi są synchronizowane z Supabase. Konta trenerów i zawodników tworzy się przez system logowania, a role nadaje administrator.</p>
     <div class="a09-item" style="margin-top:14px">
-      <h3>Bezpieczeństwo danych Akademii</h3>
-      <p class="note">Eksport obejmuje profil, listę zawodników i ich zadania, grupy, trenerów, przypisania, zadania grupowe oraz kalendarz.</p>
+      <h3>Kopia lokalnych danych demonstracyjnych</h3>
+      <p class="note">Eksport/import obejmuje wyłącznie starsze dane demonstracyjne zapisane w tej przeglądarce. Nie jest kopią bazy Supabase.</p>
       <div class="a09-form">
         <button class="action" id="a10Export" type="button">Pobierz kopię zapasową JSON</button>
         <label class="wide">Odtwórz dane z pliku JSON<input id="a10ImportFile" type="file" accept=".json,application/json"></label>
@@ -269,20 +269,18 @@
       </div>
       <button class="action" id="a09AddGroup">Utwórz grupę</button>
       <div class="a09-list" id="a09Groups"></div>
-      <h3>Przypisz wybranego zawodnika do grupy</h3>
+      <h3>Przypisz zawodnika do grupy</h3>
       <div class="a09-form">
+        <label class="wide">Zawodnik<select id="a09MemberPlayer"></select></label>
         <label class="wide">Grupa<select id="a09MembershipGroup"></select></label>
       </div>
-      <button class="action secondary" id="a09AssignMember">Przypisz z panelu trenera</button>
+      <button class="action secondary" id="a09AssignMember" type="button">Przypisz zawodnika</button>
     </div>
     <div class="academy09-card">
       <h2>Zespół trenerski</h2>
-      <div class="a09-form">
-        <label class="wide">Imię lub pseudonim trenera<input id="a09CoachName" maxlength="50" placeholder="Np. Trener A"></label>
-      </div>
-      <button class="action" id="a09AddCoach">Dodaj trenera testowego</button>
+      <p class="note">Lista aktywnych kont z rolą „trener”. Nowe konto należy zarejestrować, a następnie nadać mu rolę trenera w panelu administracyjnym Supabase.</p>
       <div class="a09-list" id="a09Coaches"></div>
-      <div class="a09-message" id="a09Message" role="status">Wybierz zawodnika w panelu trenera 0.8, aby przypisać go do grupy.</div>
+      <div class="a09-message" id="a09Message" role="status">Dane Akademii będą pobierane z Supabase po zalogowaniu.</div>
     </div>
   </div>
   <div class="a09-grid">
@@ -311,12 +309,13 @@
   </div>
   <div class="academy09-card">
     <h2>Ranking Akademii</h2>
-    <p class="note">Ranking demonstracyjny na podstawie XP zapisanych w panelu trenera. Nie pobiera wyników z urządzeń zawodników.</p>
-    <div class="roster-wrap"><table class="a09-rank"><thead><tr><th>#</th><th>Zawodnik</th><th>Grupa</th><th>Poziom</th><th>XP</th><th>Ukończone zadania</th></tr></thead><tbody id="a09Ranking"></tbody></table></div>
+    <p class="note">Ranking na podstawie XP zapisanych w profilach Supabase. Widoczność zawodników zależy od uprawnień administratora lub trenera do grup.</p>
+    <div class="roster-wrap"><table class="a09-rank"><thead><tr><th>#</th><th>Zawodnik</th><th>Grupa</th><th>XP</th><th>Zadania zaliczone</th></tr></thead><tbody id="a09Ranking"></tbody></table></div>
+    <h3>Ranking grup</h3><div class="roster-wrap"><table class="a09-rank"><thead><tr><th>#</th><th>Grupa</th><th>Zawodnicy</th><th>Łączne XP</th><th>Średnie XP</th></tr></thead><tbody id="a09GroupRanking"></tbody></table></div>
   </div>
 </section>
 
-<footer>SPARTA 64 · Prototyp 2.1 · Panel trenera online · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
+<footer>SPARTA 64 · Akademia 64 v2.6 · Panel Akademii online · Stockfish 19 Lite Single · chess.js 0.10.3.</footer>
 <script>
 (() => {
   const status=document.getElementById("status");
@@ -723,29 +722,7 @@
     const ranked=coachData.slice().sort((x,y)=>y.xp-x.xp);
     a09("a09Ranking").innerHTML=ranked.map((p,i)=>{const g=a09Group(a09Data.memberships[p.id]);return `<tr><td>${i+1}</td><td>${a09Esc(p.name)}</td><td>${a09Esc(g?g.name:"Bez grupy")}</td><td>${a09Esc(p.level)}</td><td><strong>${p.xp}</strong></td><td>${p.assignments.filter(t=>t.done).length+(a09Data.groupTasks.reduce((n,t)=>n+((t.doneAthleteIds||[]).includes(p.id)?1:0),0))}</td></tr>`;}).join("")||'<tr><td colspan="6">Brak zawodników.</td></tr>';
   }
-  a09("a09AddCoach").addEventListener("click",()=>{
-    const name=a09("a09CoachName").value.trim();if(!name){a09("a09Message").textContent="Wpisz nazwę lub pseudonim trenera.";return;}
-    if(a09Data.coaches.some(c=>c.name.toLocaleLowerCase("pl")===name.toLocaleLowerCase("pl"))){a09("a09Message").textContent="Taki trener już istnieje.";return;}
-    a09Data.coaches.push({id:"coach_"+Date.now(),name});a09("a09CoachName").value="";saveA09();renderA09();a09("a09Message").textContent="Dodano trenera testowego.";
-  });
-  a09("a09AddGroup").addEventListener("click",()=>{
-    const name=a09("a09GroupName").value.trim();if(!name){a09("a09Message").textContent="Podaj nazwę grupy.";return;}
-    if(!a09Data.coaches.length){a09("a09Message").textContent="Najpierw dodaj trenera.";return;}
-    a09Data.groups.push({id:"group_"+Date.now(),name,level:a09("a09GroupLevel").value,coachId:a09("a09GroupCoach").value});a09("a09GroupName").value="";saveA09();renderA09();a09("a09Message").textContent="Utworzono grupę.";
-  });
-  a09("a09AssignMember").addEventListener("click",()=>{
-    const athlete=selectedAthlete(),group=a09Group(a09("a09MembershipGroup").value);
-    if(!athlete){a09("a09Message").textContent="Najpierw wybierz zawodnika w panelu trenera 0.8.";return;}
-    if(!group){a09("a09Message").textContent="Najpierw utwórz grupę.";return;}
-    a09Data.memberships[athlete.id]=group.id;saveA09();renderA09();a09("a09Message").textContent=`${athlete.name} przypisany do grupy ${group.name}.`;
-  });
-  a09("a09AssignGroupTask").addEventListener("click",()=>{
-    const group=a09Group(a09("a09TaskGroup").value),members=group?coachData.filter(p=>a09Data.memberships[p.id]===group.id):[];
-    if(!group){a09("a09Message").textContent="Najpierw utwórz grupę.";return;}
-    if(!members.length){a09("a09Message").textContent="Ta grupa nie ma jeszcze zawodników.";return;}
-    a09Data.groupTasks.push({id:"grouptask_"+Date.now(),groupId:group.id,type:a09("a09TaskType").value,due:a09("a09TaskDue").value,xp:Math.max(1,Math.min(50,Number(a09("a09TaskXp").value)||5)),created:new Date().toISOString(),doneAthleteIds:[]});
-    saveA09();renderA09();a09("a09Message").textContent=`Przydzielono zadanie grupie ${group.name}.`;
-  });
+  // Zarządzanie strukturą Akademii jest obsługiwane online przez Supabase.
   // Kalendarz online jest obsługiwany przez Supabase w drugim skrypcie. 
   renderA09();
 
@@ -905,6 +882,177 @@
   });
 
   let busy=false, currentProfile=null, reviewBusy=false;
+  // =========================================================
+  // SPARTA 64 v2.6 – ONLINE ACADEMY MANAGEMENT
+  // Groups, trainers, memberships, group tasks and rankings.
+  // All writes are protected by Supabase RLS.
+  // =========================================================
+  let academyGroups=[], academyTrainers=[], academyPlayers=[], academyMemberships=[], academyTasks=[], academyCompletions=[];
+  let academyBusy=false;
+  const a09=id=>document.getElementById(id);
+  const escA09=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const taskLabels={mate:'Mat w jednym',fork:'Widełki',defense:'Bezpieczna obrona',review:'Analiza własnej partii'};
+  const academyIsAdmin=()=>!!currentProfile?.roles?.includes('admin');
+  const academyCanManage=()=>!!currentProfile?.roles?.some(r=>['admin','trainer'].includes(r));
+  function academyNote(text){if(a09('a09Message'))a09('a09Message').textContent=text;}
+  function fillAcademySelect(id,items,placeholder,label){
+    const el=a09(id); if(!el)return;
+    const old=el.value;
+    el.innerHTML=`<option value="">${escA09(placeholder)}</option>`+items.map(x=>`<option value="${escA09(x.id)}">${escA09(label(x))}</option>`).join('');
+    if(items.some(x=>x.id===old))el.value=old;
+  }
+  async function loadAcademyOnline(){
+    if(!currentProfile||!academyCanManage()||academyBusy)return;
+    academyBusy=true; academyNote('Pobieram strukturę Akademii z Supabase…');
+    try{
+      const {data:groups,error:ge}=await client.from('training_groups').select('id,name,level,trainer_id,created_at').order('name');
+      if(ge)throw ge;
+      academyGroups=groups||[];
+      const groupIds=academyGroups.map(g=>g.id);
+      let trainerIds=[...new Set(academyGroups.map(g=>g.trainer_id).filter(Boolean))];
+      if(academyIsAdmin()){
+        const {data:roles,error:re}=await client.from('user_roles').select('user_id').eq('role','trainer');
+        if(re)throw re;
+        trainerIds=[...new Set([...trainerIds,...(roles||[]).map(r=>r.user_id)])];
+      }
+      if(trainerIds.length){
+        const {data:trainers,error:te}=await client.from('profiles').select('id,display_name,is_active').in('id',trainerIds).eq('is_active',true);
+        if(te)throw te;
+        academyTrainers=(trainers||[]).map(t=>({id:t.id,display_name:t.display_name||'Trener'}));
+      }else academyTrainers=[];
+      if(groupIds.length){
+        const {data:members,error:me}=await client.from('group_members').select('id,group_id,player_id,joined_at').in('group_id',groupIds);
+        if(me)throw me;
+        academyMemberships=members||[];
+      }else academyMemberships=[];
+      const playerIds=[...new Set(academyMemberships.map(m=>m.player_id))];
+      if(academyIsAdmin()){
+        const {data:roleRows,error:pr}=await client.from('user_roles').select('user_id').eq('role','player');
+        if(pr)throw pr;
+        const allPlayerIds=[...new Set([...(roleRows||[]).map(r=>r.user_id),...playerIds])];
+        if(allPlayerIds.length){
+          const {data:players,error:pe}=await client.from('profiles').select('id,display_name,xp,is_active').in('id',allPlayerIds).eq('is_active',true).order('display_name');
+          if(pe)throw pe; academyPlayers=players||[];
+        }else academyPlayers=[];
+      }else if(playerIds.length){
+        const {data:players,error:pe}=await client.from('profiles').select('id,display_name,xp,is_active').in('id',playerIds).eq('is_active',true).order('display_name');
+        if(pe)throw pe; academyPlayers=players||[];
+      }else academyPlayers=[];
+      if(groupIds.length){
+        const {data:tasks,error:te}=await client.from('tasks').select('id,group_id,title,description,xp_reward,due_date,created_at,created_by').in('group_id',groupIds).order('created_at',{ascending:false});
+        if(te)throw te; academyTasks=tasks||[];
+      }else academyTasks=[];
+      if(academyTasks.length){
+        const taskIds=academyTasks.map(t=>t.id);
+        const {data:completions,error:ce}=await client.from('task_completions').select('task_id,player_id,status').in('task_id',taskIds);
+        if(ce)throw ce; academyCompletions=completions||[];
+      }else academyCompletions=[];
+      renderAcademyOnline();
+      academyNote(`Dane zsynchronizowane z Supabase · ${academyGroups.length} grup · ${academyPlayers.length} zawodników · ${academyTasks.length} zadań.`);
+      await loadAcademyRankings();
+    }catch(e){academyNote('Błąd pobierania Akademii: '+(e.message||String(e)));}
+    finally{academyBusy=false;}
+  }
+  function renderAcademyOnline(){
+    const groupSelectItems=academyGroups;
+    fillAcademySelect('a09MembershipGroup',groupSelectItems,'Wybierz grupę',g=>g.name);
+    fillAcademySelect('a09TaskGroup',groupSelectItems,'Wybierz grupę',g=>g.name);
+    fillAcademySelect('a09GroupCoach',academyTrainers,'Bez przypisanego trenera',t=>t.display_name);
+    fillAcademySelect('a09MemberPlayer',academyPlayers,'Wybierz zawodnika',p=>p.display_name);
+    const groupOptions=academyGroups.map(g=>`<option value="${escA09(g.id)}">${escA09(g.name)}</option>`).join('')||'<option value="">Brak grup</option>';
+    const trainerOptions=academyTrainers.map(t=>`<option value="${escA09(t.id)}">${escA09(t.display_name)}</option>`).join('')||'<option value="">Brak aktywnych trenerów</option>';
+    a09('a09SessionGroup').innerHTML=groupOptions;
+    a09('a09SessionCoach').innerHTML=trainerOptions;
+    a09('a09GroupCount').textContent=academyGroups.length;
+    a09('a09CoachCount').textContent=academyTrainers.length;
+    a09('a09Groups').innerHTML=academyGroups.map(g=>{
+      const members=academyMemberships.filter(m=>m.group_id===g.id);
+      const trainer=academyTrainers.find(t=>t.id===g.trainer_id);
+      const memberNames=members.map(m=>academyPlayers.find(p=>p.id===m.player_id)?.display_name||'Zawodnik').join(', ');
+      const coachControl=academyIsAdmin()?`<label class="a09-mini">Trener prowadzący <select data-online-group-trainer="${escA09(g.id)}"><option value="">Bez przypisania</option>${academyTrainers.map(t=>`<option value="${escA09(t.id)}" ${t.id===g.trainer_id?'selected':''}>${escA09(t.display_name)}</option>`).join('')}</select></label>`:`<p class="a09-mini">Trener: ${escA09(trainer?.display_name||'Nieprzypisany')}</p>`;
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${escA09(g.name)}</strong><span class="pill">${members.length} zawodników</span></div><p>${escA09(g.level||'Bez poziomu')} · ${escA09(trainer?.display_name||'Bez trenera')}</p><p>${escA09(memberNames||'Brak przypisanych zawodników.')}</p>${coachControl}<div class="a09-mini" style="margin-top:7px">${members.map(m=>`<button class="action secondary" type="button" data-online-member-remove="${escA09(m.id)}" title="Usuń zawodnika z grupy">Usuń: ${escA09(academyPlayers.find(p=>p.id===m.player_id)?.display_name||'zawodnika')}</button>`).join(' ')}</div></div>`;
+    }).join('')||'<p class="note">Brak grup. Administrator może utworzyć pierwszą grupę.</p>';
+    a09('a09Groups').querySelectorAll('[data-online-group-trainer]').forEach(sel=>sel.addEventListener('change',async()=>{
+      if(!academyIsAdmin())return; sel.disabled=true;
+      try{const {error}=await client.from('training_groups').update({trainer_id:sel.value||null}).eq('id',sel.dataset.onlineGroupTrainer);if(error)throw error;academyNote('Zmieniono trenera grupy.');await loadAcademyOnline();}
+      catch(e){academyNote('Nie udało się zmienić trenera: '+(e.message||String(e)));sel.disabled=false;}
+    }));
+    a09('a09Groups').querySelectorAll('[data-online-member-remove]').forEach(btn=>btn.addEventListener('click',async()=>{
+      if(!confirm('Usunąć zawodnika z tej grupy? Historia jego profilu i XP pozostanie zachowana.'))return;btn.disabled=true;
+      try{const {error}=await client.from('group_members').delete().eq('id',btn.dataset.onlineMemberRemove);if(error)throw error;academyNote('Zawodnik został usunięty z grupy.');await loadAcademyOnline();}
+      catch(e){academyNote('Nie udało się usunąć przypisania: '+(e.message||String(e)));btn.disabled=false;}
+    }));
+    a09('a09Coaches').innerHTML=academyTrainers.map(t=>{
+      const groups=academyGroups.filter(g=>g.trainer_id===t.id);
+      return `<div class="a09-item"><strong>${escA09(t.display_name)}</strong><p>Prowadzi: ${escA09(groups.map(g=>g.name).join(', ')||'brak przypisanych grup')}</p></div>`;
+    }).join('')||'<p class="note">Brak aktywnych kont z rolą trenera.</p>';
+    a09('a09GroupTasks').innerHTML=academyTasks.map(t=>{
+      const group=academyGroups.find(g=>g.id===t.group_id);
+      const memberCount=academyMemberships.filter(m=>m.group_id===t.group_id).length;
+      const approved=academyCompletions.filter(c=>c.task_id===t.id&&c.status==='approved').length;
+      const pending=academyCompletions.filter(c=>c.task_id===t.id&&c.status==='pending').length;
+      return `<div class="a09-item"><div class="a09-item-head"><strong>${escA09(t.title)}</strong><span class="pill">${Number(t.xp_reward)||0} XP</span></div><p>Grupa: ${escA09(group?.name||'—')} · Zaliczone: ${approved}/${memberCount} · Oczekujące: ${pending}</p><p>Termin: ${t.due_date?escA09(new Date(t.due_date).toLocaleDateString('pl-PL')):'bez terminu'}</p>${t.description?`<p>${escA09(t.description)}</p>`:''}<button class="action secondary" type="button" data-online-task-delete="${escA09(t.id)}">Usuń zadanie</button></div>`;
+    }).join('')||'<p class="note">Brak zadań grupowych.</p>';
+    a09('a09GroupTasks').querySelectorAll('[data-online-task-delete]').forEach(btn=>btn.addEventListener('click',async()=>{
+      if(!confirm('Usunąć zadanie i powiązane zgłoszenia? Ta operacja usuwa również historię zgłoszeń tego zadania.'))return;btn.disabled=true;
+      try{const {error}=await client.from('tasks').delete().eq('id',btn.dataset.onlineTaskDelete);if(error)throw error;academyNote('Zadanie usunięte.');await loadAcademyOnline();}
+      catch(e){academyNote('Nie udało się usunąć zadania: '+(e.message||String(e)));btn.disabled=false;}
+    }));
+    a09('a09AssignGroupTask').disabled=!academyGroups.length;
+    a09('a09AddGroup').hidden=!academyIsAdmin();
+    a09('a09GroupName').disabled=!academyIsAdmin();a09('a09GroupLevel').disabled=!academyIsAdmin();a09('a09GroupCoach').disabled=!academyIsAdmin();
+    a09('a09AssignMember').disabled=!academyGroups.length||!academyPlayers.length;
+  }
+  async function loadAcademyRankings(){
+    const playerIds=academyPlayers.map(p=>p.id);
+    let completionCounts=new Map();
+    if(playerIds.length){
+      const {data:completions,error}=await client.from('task_completions').select('player_id,status').in('player_id',playerIds).eq('status','approved');
+      if(error)throw error;
+      (completions||[]).forEach(c=>completionCounts.set(c.player_id,(completionCounts.get(c.player_id)||0)+1));
+    }
+    const ranked=academyPlayers.map(p=>{
+      const groupNames=academyMemberships.filter(m=>m.player_id===p.id).map(m=>academyGroups.find(g=>g.id===m.group_id)?.name).filter(Boolean);
+      return {...p,groupLabel:groupNames.join(', ')||'Bez grupy',completed:completionCounts.get(p.id)||0};
+    }).sort((a,b)=>(b.xp||0)-(a.xp||0)||String(a.display_name).localeCompare(String(b.display_name),'pl'));
+    a09('a09Ranking').innerHTML=ranked.map((p,i)=>`<tr><td>${i+1}</td><td>${escA09(p.display_name)}</td><td>${escA09(p.groupLabel)}</td><td><strong>${Number(p.xp)||0}</strong></td><td>${p.completed}</td></tr>`).join('')||'<tr><td colspan="5">Brak aktywnych zawodników widocznych dla tego konta.</td></tr>';
+    const groupRank=academyGroups.map(g=>{
+      const members=academyMemberships.filter(m=>m.group_id===g.id).map(m=>academyPlayers.find(p=>p.id===m.player_id)).filter(Boolean);
+      const total=members.reduce((sum,p)=>sum+(Number(p.xp)||0),0);
+      return {name:g.name,count:members.length,total,average:members.length?Math.round(total/members.length):0};
+    }).sort((a,b)=>b.total-a.total);
+    a09('a09GroupRanking').innerHTML=groupRank.map((g,i)=>`<tr><td>${i+1}</td><td>${escA09(g.name)}</td><td>${g.count}</td><td><strong>${g.total}</strong></td><td>${g.average}</td></tr>`).join('')||'<tr><td colspan="5">Brak grup.</td></tr>';
+  }
+  a09('a09RefreshOnline').addEventListener('click',()=>loadAcademyOnline());
+  a09('a09AddGroup').addEventListener('click',async()=>{
+    if(!academyIsAdmin()){academyNote('Tylko administrator może tworzyć grupy.');return;}
+    const name=a09('a09GroupName').value.trim(),level=a09('a09GroupLevel').value,trainerId=a09('a09GroupCoach').value||null;
+    if(!name){academyNote('Podaj nazwę grupy.');return;}
+    const btn=a09('a09AddGroup');btn.disabled=true;
+    try{const {error}=await client.from('training_groups').insert({name,level,trainer_id:trainerId});if(error)throw error;a09('a09GroupName').value='';academyNote('Grupa została utworzona w Supabase.');await loadAcademyOnline();}
+    catch(e){academyNote('Nie udało się utworzyć grupy: '+(e.message||String(e)));}
+    finally{btn.disabled=false;}
+  });
+  a09('a09AssignMember').addEventListener('click',async()=>{
+    const playerId=a09('a09MemberPlayer').value,groupId=a09('a09MembershipGroup').value;
+    if(!playerId||!groupId){academyNote('Wybierz zawodnika i grupę.');return;}
+    const btn=a09('a09AssignMember');btn.disabled=true;
+    try{const {error}=await client.from('group_members').insert({player_id:playerId,group_id:groupId});if(error)throw error;academyNote('Zawodnik został przypisany do grupy.');await loadAcademyOnline();}
+    catch(e){academyNote('Nie udało się przypisać zawodnika: '+(e.message||String(e)));}
+    finally{btn.disabled=false;}
+  });
+  a09('a09AssignGroupTask').addEventListener('click',async()=>{
+    const groupId=a09('a09TaskGroup').value,type=a09('a09TaskType').value,due=a09('a09TaskDue').value;
+    const xp=Math.max(0,Math.min(1000,Number(a09('a09TaskXp').value)||5));
+    const title=taskLabels[type]||'Zadanie treningowe';
+    if(!groupId){academyNote('Wybierz grupę.');return;}
+    const group=academyGroups.find(g=>g.id===groupId);
+    if(!group){academyNote('Nie znaleziono grupy.');return;}
+    const btn=a09('a09AssignGroupTask');btn.disabled=true;
+    try{const {error}=await client.from('tasks').insert({group_id:groupId,title,description:'Zadanie grupowe Akademii SPARTA 64.',xp_reward:xp,due_date:due?new Date(due+'T23:59:00').toISOString():null,created_by:(await client.auth.getUser()).data.user.id});if(error)throw error;academyNote(`Zadanie „${title}” zostało przypisane grupie ${group.name}.`);await loadAcademyOnline();}
+    catch(e){academyNote('Nie udało się utworzyć zadania: '+(e.message||String(e)));}
+    finally{btn.disabled=false;}
+  });
   const reviewPanel=document.getElementById('spartaReview');
   const studentPanel=document.getElementById('spartaStudent');
   const studentTaskList=document.getElementById('studentTaskList');
@@ -1060,15 +1208,15 @@
     // Lokalne moduły zarządzania są demonstracyjne; pokazujemy je tylko personelowi.
     const localCoach=document.querySelector('.coach-section');
     const localStructure=document.querySelector('.academy09');
-    if(localCoach)localCoach.hidden=!canManage;
+    if(localCoach)localCoach.hidden=true; // Legacy local roster is intentionally disabled in v2.6.
     if(localStructure)localStructure.hidden=!canManage;
     if(roles.includes('player'))loadStudentTasks();
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
     const roleLabel=roles.map(role=>roleNames[role]||role).join(' + ');
     document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleLabel} · ${profile.xp||0} XP`;
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
-    banner.textContent='Konto online jest rozpoznane. Uwaga: moduły szachowe i część danych Akademii w tej wersji nadal działają lokalnie w przeglądarce — nie są jeszcze synchronizowane z bazą.';
-    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(canManage){loadReviews();loadCalendar();}
+    banner.textContent='Konto online jest rozpoznane. Grupy, trenerzy, przypisania, zadania, zgłoszenia, XP i kalendarz korzystają z Supabase. Moduły szachowe i osobista biblioteka taktyczna nadal działają lokalnie.';
+    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(canManage){loadReviews();loadCalendar();loadAcademyOnline();}
   }
   async function run(action){if(busy)return;busy=true;document.getElementById('authLogin').disabled=true;document.getElementById('authRegister').disabled=true;
     const email=document.getElementById('authEmail').value.trim();const password=document.getElementById('authPassword').value;
