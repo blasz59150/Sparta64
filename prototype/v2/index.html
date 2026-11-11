@@ -822,7 +822,7 @@
   const reviewMessage=document.getElementById('reviewMessage');
   const escReview=(v)=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
   async function loadReviews(){
-    if(!currentProfile || !['admin','trainer'].includes(currentProfile.role))return;
+    if(!currentProfile || !currentProfile.roles?.some(role=>['admin','trainer'].includes(role)))return;
     if(reviewBusy)return; reviewBusy=true;
     reviewList.innerHTML='<div class="note">Pobieram oczekujące zgłoszenia…</div>';
     try{
@@ -864,7 +864,7 @@
 
   const escStudent=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   async function loadStudentTasks(){
-    if(!currentProfile || currentProfile.role!=='player' || studentBusy)return;
+    if(!currentProfile || !currentProfile.roles?.includes('player') || studentBusy)return;
     studentBusy=true;
     studentTaskList.innerHTML='<div class="note">Pobieram zadania…</div>';
     try{
@@ -943,16 +943,40 @@
     setMsg('Sprawdzam uprawnienia konta…');
     const {data:profile,error}=await client.from('profiles').select('display_name,role,xp').eq('id',session.user.id).single();
     if(error||!profile){await client.auth.signOut();document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;setMsg('Zalogowano, ale nie udało się odczytać profilu zawodnika. Sprawdź tabelę profiles i jej polityki RLS.\n'+(error?.message||''));return;}
-    currentProfile=profile;
+    const {data:roleRows,error:rolesError}=await client
+      .from('user_roles')
+      .select('role')
+      .eq('user_id',session.user.id);
+    if(rolesError){
+      await client.auth.signOut();
+      document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;
+      setMsg('Nie udało się odczytać ról konta. Sprawdź tabelę user_roles i jej polityki RLS.\\n'+rolesError.message);
+      return;
+    }
+    const roles=[...new Set((roleRows||[]).map(row=>row.role))];
+    if(!roles.length){
+      await client.auth.signOut();
+      document.body.classList.add('auth-locked');gate.hidden=false;sessionBar.hidden=true;
+      setMsg('To konto nie ma przypisanej żadnej roli. Poproś administratora Akademii o pomoc.');
+      return;
+    }
+    currentProfile={...profile,roles};
     gate.hidden=true;document.body.classList.remove('auth-locked');sessionBar.hidden=false;
-    reviewPanel.hidden=!['admin','trainer'].includes(profile.role);
-    studentPanel.hidden=profile.role!=='player';
-    if(profile.role==='player')loadStudentTasks();
+    const canManage=roles.includes('admin')||roles.includes('trainer');
+    reviewPanel.hidden=!canManage;
+    studentPanel.hidden=!roles.includes('player');
+    // Lokalne moduły zarządzania są demonstracyjne; pokazujemy je tylko personelowi.
+    const localCoach=document.querySelector('.coach-section');
+    const localStructure=document.querySelector('.academy09');
+    if(localCoach)localCoach.hidden=!canManage;
+    if(localStructure)localStructure.hidden=!canManage;
+    if(roles.includes('player'))loadStudentTasks();
     const roleNames={admin:'Administrator',trainer:'Trener',player:'Zawodnik'};
-    document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleNames[profile.role]||profile.role} · ${profile.xp||0} XP`;
+    const roleLabel=roles.map(role=>roleNames[role]||role).join(' + ');
+    document.getElementById('sessionLabel').textContent=`Witaj, ${profile.display_name||session.user.email} · ${roleLabel} · ${profile.xp||0} XP`;
     const banner=document.createElement('div');banner.id='spartaOnlineNotice';banner.style.cssText='max-width:1050px;margin:10px auto;padding:10px 14px;background:#fff4d8;border:1px solid #e3c77e;border-radius:9px;color:#57451e;font-size:13px';
     banner.textContent='Konto online jest rozpoznane. Uwaga: moduły szachowe i część danych Akademii w tej wersji nadal działają lokalnie w przeglądarce — nie są jeszcze synchronizowane z bazą.';
-    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(['admin','trainer'].includes(profile.role))loadReviews();
+    const old=document.getElementById('spartaOnlineNotice');if(old)old.remove();sessionBar.after(banner);if(canManage)loadReviews();
   }
   async function run(action){if(busy)return;busy=true;document.getElementById('authLogin').disabled=true;document.getElementById('authRegister').disabled=true;
     const email=document.getElementById('authEmail').value.trim();const password=document.getElementById('authPassword').value;
