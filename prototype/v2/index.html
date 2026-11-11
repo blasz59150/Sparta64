@@ -94,12 +94,17 @@
     #spartaStudent .student-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px #29251a0a}
     #spartaStudent .student-task{padding:12px;margin:9px 0;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}
     #spartaStudent .student-task-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+    #spartaStudent .student-task-actions{display:flex;align-items:center;gap:7px}
+    #spartaStudent .student-task-dismiss{flex:0 0 auto;border:0;border-radius:7px;padding:1px 8px;background:#e8dfcf;color:#57451e;font-size:20px;line-height:1.3;cursor:pointer}
+    #spartaStudent .student-task-dismiss:focus-visible{outline:2px solid #a92e32;outline-offset:2px}
     #spartaStudent .student-meta{font-size:12px;color:var(--muted);margin-top:5px}
     #spartaStudent .student-status{display:inline-block;padding:4px 8px;border-radius:20px;font-size:12px;font-weight:700;background:#eee9df}
     #spartaStudent .student-status.pending{background:#fff0c9;color:#74530c}
     #spartaStudent .student-status.approved{background:#dcefe2;color:#246b43}
     #spartaStudent .student-status.rejected{background:#f3e1df;color:#8b2929}
-    #spartaStudent .student-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap}
+    #spartaStudent .student-message{padding:10px;background:#f3eee3;border-radius:9px;font-size:13px;min-height:38px;margin-top:10px;white-space:pre-wrap;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    #spartaStudent .student-message-text{flex:1;min-width:0}
+    #spartaStudent .student-message-close{flex:0 0 auto;border:0;border-radius:7px;padding:0 8px;background:#e8dfcf;color:#57451e;font-size:20px;line-height:1.3;cursor:pointer}
     .student-group-info{margin:12px 0;padding:12px;background:#f8f5ee;border:1px solid var(--line);border-radius:10px}.student-group-info .group-line{margin-top:6px;font-size:13px}.student-group-info strong{display:block}
     @media(max-width:760px){#spartaStudent .student-card{padding:13px}}
 
@@ -130,7 +135,7 @@
       <button class="action secondary" id="studentRefresh" type="button">Odśwież zadania</button>
     </div>
     <div id="studentTaskList" aria-live="polite" style="margin-top:12px"><div class="note">Ładowanie zadań…</div></div>
-    <div id="studentMessage" class="student-message" role="status">Tutaj zobaczysz swoje zadania i zgłoszenia.</div>
+    <div id="studentMessage" class="student-message" role="status"><span class="student-message-text">Tutaj zobaczysz swoje zadania i zgłoszenia.</span><button class="student-message-close" type="button" aria-label="Zamknij powiadomienie">×</button></div>
   </div>
 </section>
 
@@ -1058,6 +1063,12 @@
   const studentPanel=document.getElementById('spartaStudent');
   const studentTaskList=document.getElementById('studentTaskList');
   const studentMessage=document.getElementById('studentMessage');
+  function setStudentMessage(message){
+    const label=studentMessage.querySelector('.student-message-text');
+    if(label)label.textContent=message;
+    studentMessage.hidden=false;
+  }
+  studentMessage.querySelector('.student-message-close')?.addEventListener('click',()=>{studentMessage.hidden=true;});
   let studentBusy=false;
   const reviewList=document.getElementById('reviewList');
   const reviewMessage=document.getElementById('reviewMessage');
@@ -1124,14 +1135,14 @@
       const groupIds=[...new Set((members||[]).map(x=>x.group_id))];
       if(!groupIds.length){
         studentTaskList.innerHTML='<div class="note">Nie jesteś jeszcze przypisany do żadnej grupy. Poproś trenera o przypisanie.</div>';
-        studentMessage.textContent='Brak przypisanych grup.';
+        setStudentMessage('Brak przypisanych grup.');
         return;
       }
       const {data:tasks,error:te}=await client.from('tasks').select('id,title,description,xp_reward,due_date,group_id').in('group_id',groupIds).order('due_date',{ascending:true});
       if(te)throw te;
       if(!tasks?.length){
         studentTaskList.innerHTML='<div class="note">Twoja grupa nie ma jeszcze przydzielonych zadań.</div>';
-        studentMessage.textContent='Zadania pojawią się tutaj, gdy trener je przydzieli.';
+        setStudentMessage('Zadania pojawią się tutaj, gdy trener je przydzieli.');
         return;
       }
       const taskIds=tasks.map(t=>t.id);
@@ -1151,7 +1162,18 @@
         const head=document.createElement('div');head.className='student-task-head';
         const title=document.createElement('strong');title.textContent=task.title||'Zadanie';
         const badge=document.createElement('span');badge.className='student-status '+status;badge.textContent=labels[status]||status;
-        head.append(title,badge);row.append(head);
+        const actions=document.createElement('div');actions.className='student-task-actions';actions.append(badge);
+        if(status==='approved'){
+          const dismiss=document.createElement('button');dismiss.type='button';dismiss.className='student-task-dismiss';dismiss.textContent='×';
+          dismiss.setAttribute('aria-label','Ukryj zaliczone zadanie z listy');
+          dismiss.title='Ukryj z listy (nie usuwa zadania ani punktów XP)';
+          dismiss.addEventListener('click',()=>{
+            row.remove();
+            setStudentMessage('Zaliczone zadanie ukryto z tego widoku. Zapis w Akademii i przyznane XP pozostają bez zmian.');
+          });
+          actions.append(dismiss);
+        }
+        head.append(title,actions);row.append(head);
         if(task.description){const desc=document.createElement('div');desc.className='student-meta';desc.textContent=task.description;row.append(desc);}
         const meta=document.createElement('div');meta.className='student-meta';
         meta.textContent=`Nagroda: ${Number(task.xp_reward||0)} XP${task.due_date?' · Termin: '+task.due_date:''}`;
@@ -1166,10 +1188,10 @@
         }
         studentTaskList.append(row);
       });
-      studentMessage.textContent=`Zadań w Twoich grupach: ${tasks.length}. Statusy są pobierane z bazy Akademii.`;
+      setStudentMessage(`Zadań w Twoich grupach: ${tasks.length}. Statusy są pobierane z bazy Akademii.`);
     }catch(e){
       studentTaskList.innerHTML='<div class="note">Nie udało się pobrać zadań.</div>';
-      studentMessage.textContent='Błąd: '+(e.message||String(e));
+      setStudentMessage('Błąd: '+(e.message||String(e)));
     }finally{studentBusy=false;}
   }
   async function submitStudentTask(taskId,button){
@@ -1180,10 +1202,10 @@
       if(!userData?.user)throw new Error('Sesja wygasła. Zaloguj się ponownie.');
       const {error}=await client.from('task_completions').insert({task_id:taskId,player_id:userData.user.id});
       if(error)throw error;
-      studentMessage.textContent='Zgłoszenie wysłane! Trener zobaczy je w swoim panelu.';
+      setStudentMessage('Zgłoszenie wysłane! Trener zobaczy je w swoim panelu.');
       await loadStudentTasks();
     }catch(e){
-      studentMessage.textContent='Nie udało się wysłać zgłoszenia: '+(e.message||String(e));
+      setStudentMessage('Nie udało się wysłać zgłoszenia: '+(e.message||String(e)));
       if(button)button.disabled=false;
     }
   }
